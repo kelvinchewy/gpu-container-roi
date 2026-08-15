@@ -14,6 +14,7 @@ import {
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -21,7 +22,7 @@ import {
 } from "@/components/ui/table";
 import { SKU_LABEL } from "@/lib/roi/defaults";
 import { usd } from "@/lib/roi/format";
-import { RENT_SOURCE, bomSum, cloneBom, type BomLine } from "@/lib/roi/sources";
+import { CITE, RENT_SOURCE, bomSum, cloneBom, type BomLine } from "@/lib/roi/sources";
 import type { SkuId } from "@/lib/roi/types";
 
 import { NumberInput } from "./fields";
@@ -78,7 +79,10 @@ function BomEditor({
     <DialogContent>
       <DialogHeader>
         <DialogTitle>{SKU_LABEL[skuId]} server BOM</DialogTitle>
-        <DialogDescription>Save writes server price.</DialogDescription>
+        <DialogDescription>
+          Other is the plug so the total matches Excel server price at Reset
+          ($88,200 RTX 5090 · $191,800 Pro 6000). Save writes that total into the engine.
+        </DialogDescription>
       </DialogHeader>
       <Table>
         <TableHeader>
@@ -156,7 +160,9 @@ export function RentSourceDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{SKU_LABEL[skuId]} GPU rent</DialogTitle>
-          <DialogDescription>Market comps as of Aug 2026.</DialogDescription>
+          <DialogDescription>
+            Listed comps, 15 Aug 2026. Model rent is the calculator; these rows do not write it.
+          </DialogDescription>
         </DialogHeader>
         <Table>
           <TableHeader>
@@ -175,10 +181,6 @@ export function RentSourceDialog({
               <TableCell className="text-right font-mono">{row.ecohash}</TableCell>
             </TableRow>
             <TableRow>
-              <TableCell>PPT adopted</TableCell>
-              <TableCell className="text-right font-mono">{row.adoptedPpt}</TableCell>
-            </TableRow>
-            <TableRow>
               <TableCell>Market low</TableCell>
               <TableCell className="text-right font-mono">{row.low}</TableCell>
             </TableRow>
@@ -190,12 +192,40 @@ export function RentSourceDialog({
               <TableCell>Market high</TableCell>
               <TableCell className="text-right font-mono">{row.high}</TableCell>
             </TableRow>
-            <TableRow>
-              <TableCell colSpan={2} className="text-xs text-muted-foreground">
-                {row.sources}
-              </TableCell>
-            </TableRow>
           </TableBody>
+          <TableCaption className="mt-3 text-left text-xs whitespace-normal">
+            {row.sources}
+            {" · "}
+            <a className="underline underline-offset-4" href={CITE.ecohashPricing}>
+              ecohash.com/pricing
+            </a>
+            {" · "}
+            <a className="underline underline-offset-4" href={skuId === "5090" ? CITE.listing5090 : CITE.listingPro6000}>
+              getdeploying
+            </a>
+            {" · "}
+            {skuId === "5090" ? (
+              <>
+                <a className="underline underline-offset-4" href={CITE.vast}>
+                  vast.ai
+                </a>
+                {" · "}
+                <a className="underline underline-offset-4" href={CITE.runpod5090}>
+                  RunPod 5090
+                </a>
+              </>
+            ) : (
+              <>
+                <a className="underline underline-offset-4" href={CITE.packet5090}>
+                  Packet.ai
+                </a>
+                {" · "}
+                <a className="underline underline-offset-4" href={CITE.runpodPro6000}>
+                  RunPod Pro 6000
+                </a>
+              </>
+            )}
+          </TableCaption>
         </Table>
       </DialogContent>
     </Dialog>

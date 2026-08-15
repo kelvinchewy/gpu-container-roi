@@ -44,9 +44,11 @@ function PieLegend({
 function SharePie({
   config,
   data,
+  valueKind,
 }: {
   config: ChartConfig;
   data: readonly { key: string; name: string; value: number; fill: string }[];
+  valueKind: "count" | "percent";
 }) {
   return (
     <ChartContainer config={config} className="aspect-square max-h-52 w-full">
@@ -59,7 +61,9 @@ function SharePie({
               formatter={(value, name) => (
                 <div className="flex w-full items-center justify-between gap-4">
                   <span>{String(name)}</span>
-                  <span className="font-mono">{String(value)}%</span>
+                  <span className="font-mono">
+                    {valueKind === "percent" ? `${String(value)}%` : String(value)}
+                  </span>
                 </div>
               )}
             />
@@ -76,7 +80,7 @@ export function ContextPies() {
     <div className="grid gap-6 sm:grid-cols-2">
       <div className="grid gap-2">
         <h3 className="text-sm font-medium">Cloud listings · 5090 vs Pro 6000</h3>
-        <SharePie config={listingConfig} data={LISTING_SHARE} />
+        <SharePie config={listingConfig} data={LISTING_SHARE} valueKind="count" />
         <PieLegend items={LISTING_SHARE} />
         <p className="text-xs text-muted-foreground">
           104 vs 207 listings ·{" "}
@@ -99,7 +103,7 @@ export function ContextPies() {
       </div>
       <div className="grid gap-2">
         <h3 className="text-sm font-medium">Cloud GPU $ mix · 2025</h3>
-        <SharePie config={appConfig} data={CLOUD_APP_SHARE} />
+        <SharePie config={appConfig} data={CLOUD_APP_SHARE} valueKind="percent" />
         <PieLegend items={CLOUD_APP_SHARE} />
         <p className="text-xs text-muted-foreground">
           <a

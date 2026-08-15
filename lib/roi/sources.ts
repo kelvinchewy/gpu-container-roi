@@ -10,11 +10,6 @@ export function cloneBom(lines: BomLine[]): BomLine[] {
   return lines.map((line) => ({ ...line }));
 }
 
-/** PPT slide 3 hardware lines only. Excel server price is the "Other" plug in DEFAULT_BOM. */
-export function pptBom(skuId: SkuId): BomLine[] {
-  return DEFAULT_BOM[skuId].filter((line) => line.key !== "other");
-}
-
 export function syncBomToPrice(lines: BomLine[], target: number): BomLine[] {
   const next = cloneBom(lines);
   const plug = next.find((line) => line.key === "other") ?? next[next.length - 1];
@@ -26,6 +21,7 @@ export function syncBomToPrice(lines: BomLine[], target: number): BomLine[] {
   return next;
 }
 
+/** Hardware lines + Other. Other is the plug so the total equals Excel server price. */
 export const DEFAULT_BOM: Record<SkuId, BomLine[]> = {
   "5090": [
     { key: "gpu", item: "NVIDIA RTX 5090 32GB", qty: 8, unitPrice: 4_500 },
@@ -48,7 +44,6 @@ export const DEFAULT_BOM: Record<SkuId, BomLine[]> = {
 };
 
 export type RentComp = {
-  adoptedPpt: string;
   low: string;
   mid: string;
   high: string;
@@ -71,7 +66,6 @@ export const ECOHASH_LIST = {
 
 export const RENT_SOURCE: Record<SkuId, RentComp> = {
   "5090": {
-    adoptedPpt: "$0.60/hr",
     low: "$0.34/hr",
     mid: "$0.60/hr",
     high: "$0.99/hr",
@@ -79,12 +73,11 @@ export const RENT_SOURCE: Record<SkuId, RentComp> = {
     ecohash: "—",
   },
   pro6000: {
-    adoptedPpt: "$1.60/hr",
     low: "$0.66/hr",
     mid: "$1.69/hr",
     high: "$5.50/hr",
     sources:
-      "Packet.ai $0.66 · RunPod $1.69/$2.09 · AWS $4.32 · Azure $5.50 · 15 Aug 2026",
+      "Packet.ai $0.66 · RunPod Community $1.69 · Azure $5.50 · 15 Aug 2026",
     ecohash: "$1.98/hr",
   },
 };
@@ -120,9 +113,13 @@ export const CITE = {
   dataintelo: "https://dataintelo.com/report/cloud-gpu-instance-market",
   ecohashPricing: "https://ecohash.com/pricing",
   openrouterFlash: "https://openrouter.ai/deepseek/deepseek-v4-flash",
+  vast: "https://vast.ai/",
+  runpod5090: "https://www.runpod.io/gpu-models/rtx-5090",
+  runpodPro6000: "https://www.runpod.io/gpu-models/rtx-pro-6000",
+  packet5090: "https://packet.ai/blog/rtx-5090-cloud-gpu-ai",
 } as const;
 
-/** Measured 8 × RTX 5090 full load, DeepSeek-V4-Flash. Agentic in:out = 10:1. */
+/** Measured 8 × RTX 5090 full load, DeepSeek-V4-Flash. Working hour is the 10:1 mix (16.3 M in + 1.63 M out), not tok/s × 3600. */
 export const FLASH_LOAD = {
   gpus: 8,
   inTokPerSec: 6_500,
@@ -168,7 +165,7 @@ export const UNIT_COMPARE = [
   },
 ] as const;
 
-/** Dated listed $/GPU-hr for the line chart. */
+/** Dated listed $/GPU-hr. Null = no public print that month. Do not interpolate in the chart. */
 export const PRICE_LEVELS = [
   { m: "Aug 2025", sku5090: 0.88, pro6000: 1.79 },
   { m: "May 2026", sku5090: 0.76, pro6000: null },

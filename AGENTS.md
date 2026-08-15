@@ -10,8 +10,8 @@ This is the project contract. Cursor loads this file the way Claude Code loads `
 
 ## Northstar decisions
 
-- **Excel is the calculator.** Port formulas from `GPU_ROI_Model_5090_Atlanta_v5_ScenA.xlsx` (sheets `ROI Model 5090` and `ROI Model pro 6000`). Do not invent math.
-- **The PPT is Context tables only.** `GPU-ROI-Analysis-RTX5090-Pro6000-v2-CN.pptx` supplies BOM and market-source tables. **Never use its financial totals.** No prose paragraphs in the UI.
+- **Excel is the calculator.** Port formulas from the local workbook `GPU_ROI_Model_5090_Atlanta_v5_ScenA.xlsx` (sheets `ROI Model 5090` and `ROI Model pro 6000`). Do not invent math. The workbook and PPT are **not** in git; golden tests in `lib/roi/engine.test.ts` are the public pin.
+- **The PPT is not a public source.** Hardware BOM lives on GPU tabs 1–2 only. Context is independent listed research with public URLs. **Never use PPT financial totals.** No prose paragraphs in the UI.
 - **Deal (one line, on chrome chip):** Owner-operator · 100% of GPU-hour rent · EcoHash deploys · unlevered. Not a colo waterfall.
 - **Access:** internal, no auth. Do not submit the Vercel URL to public directories.
 - **Language v1: English only.** US PM English. Labels match Excel English (`Server price`, `Utilization`, `Payback`, `NPV`). No Chinese sublabels. A language switch or `/zh` is later.
@@ -38,7 +38,7 @@ Excel and PPT disagree. Examples for RTX 5090:
 | Power | $60 / kW-month | $0.06 / kWh |
 | Total capex | $3.687M | $2.70M |
 
-Context tab is independent listed research (EcoHash vs market, PPT BOM, exclusions). It does not feed the engine unless the user explicitly asks. Tabs 1, 2, and 3 render **live Excel-engine output**.
+Context tab is independent listed research (EcoHash vs market, exclusions). It does not feed the engine unless the user explicitly asks. Tabs 1, 2, and 3 render **live Excel-engine output**. BOM is editable on tabs 1–2 only.
 
 ---
 
@@ -51,7 +51,7 @@ Four tabs, one engine. Switching tabs does not reset inputs. Shared fields updat
 | 1 | **RTX 5090** (default) | Inputs, KPIs, charts, matrix for this GPU. |
 | 2 | **Pro 6000** | Same layout as tab 1, other GPU. |
 | 3 | **Compare** | Both SKUs, overlay chart, dual primary sliders, delta table. |
-| 4 | **Context** | Independent listed comps (EcoHash vs market), PPT BOM, exclusions. Not the calculator. |
+| 4 | **Context** | Independent listed comps (EcoHash vs market), exclusions. Not the calculator. No BOM. |
 
 Query `?tab=5090|pro6000|compare|context` (default `5090`).
 
@@ -391,6 +391,6 @@ Auth, saved accounts, live GPU-spot APIs, debt / leverage, PDF export, 50-state 
 
 ## Vercel
 
-Static-friendly: client-side engine, no required env vars for v1. Internal URL only. Commit the Excel and PPT in the repo as the source files.
+Static-friendly: client-side engine, no required env vars for v1. Public code repo; do **not** commit the Excel or PPT. Golden tests pin Excel cached values.
 
 When building the app, start from this file. If a later chat disagrees with Excel cached values, Excel wins.

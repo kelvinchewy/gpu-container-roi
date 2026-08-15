@@ -26,7 +26,12 @@ export function GpuTab({
 
   return (
     <div className="grid gap-6">
-      <SkuPrimaryInputs skuId={skuId} sku={sku} onChange={(patch) => onSkuChange(skuId, patch)} />
+      <SkuPrimaryInputs
+        bomEditable
+        skuId={skuId}
+        sku={sku}
+        onChange={(patch) => onSkuChange(skuId, patch)}
+      />
       <KpiStrip result={result} />
       <Card>
         <CardHeader>

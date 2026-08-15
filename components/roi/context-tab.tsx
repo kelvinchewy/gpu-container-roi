@@ -161,15 +161,19 @@ export function ContextTab() {
         <CardContent className="grid gap-3">
           <ContextDecayChart />
           <p className="text-xs text-muted-foreground">
-            Aug 2025 and Aug 2026:{" "}
+            Aug 2025 and Aug 2026: median on-demand on{" "}
             <a className="underline underline-offset-4" href={CITE.listing5090}>
               getdeploying 5090
             </a>
-            {", "}
+            {" and "}
             <a className="underline underline-offset-4" href={CITE.listingPro6000}>
               Pro 6000
             </a>
-            . May 2026: Spheron list. Jul 2026: Packet.ai median.
+            . May 2026: Spheron 5090 list (no archive URL here). Jul 2026:{" "}
+            <a className="underline underline-offset-4" href={CITE.packet5090}>
+              Packet.ai
+            </a>{" "}
+            5090 median. Pro 6000 has no May/Jul print — gaps are gaps, not a drawn path.
           </p>
         </CardContent>
       </Card>
@@ -238,15 +242,15 @@ export function ContextTab() {
               ))}
             </TableBody>
             <Caption>
-              5090 token / hr = measured 8×5090 full load, DeepSeek-V4-Flash. In{" "}
-              {FLASH_LOAD.inTokPerSec.toLocaleString("en-US")} tok/s · out{" "}
-              {FLASH_LOAD.outTokPerSec.toLocaleString("en-US")} tok/s. Agentic in:out{" "}
-              {FLASH_LOAD.inOutRatio}:1 → {FLASH_LOAD.inPerHourM} M in/hr + {FLASH_LOAD.outPerHourM} M
-              out/hr. {FLASH_LOAD.inPerHourM}×{FLASH_LOAD.openrouterInPerM.toFixed(2)} +{" "}
-              {FLASH_LOAD.outPerHourM}×{FLASH_LOAD.openrouterOutPerM.toFixed(2)} = $
-              {FLASH_LOAD.usdPerHour8.toFixed(2)} / {FLASH_LOAD.gpus} = $
-              {FLASH_LOAD.usdPerGpuHr.toFixed(4)} per GPU-hr. Pro 6000 = —. Check only, not the
-              calculator.
+              5090 token / hr is a check, not the calculator. Measured 8×5090 full load:{" "}
+              {FLASH_LOAD.inTokPerSec.toLocaleString("en-US")} in tok/s ·{" "}
+              {FLASH_LOAD.outTokPerSec.toLocaleString("en-US")} out tok/s. Working hour uses agentic{" "}
+              {FLASH_LOAD.inOutRatio}:1 mix ({FLASH_LOAD.inPerHourM} M in + {FLASH_LOAD.outPerHourM} M
+              out), not tok/s × 3,600. OpenRouter $
+              {FLASH_LOAD.openrouterInPerM.toFixed(2)} / ${FLASH_LOAD.openrouterOutPerM.toFixed(2)} → $
+              {FLASH_LOAD.usdPerHour8.toFixed(2)} / {FLASH_LOAD.gpus} GPUs = $
+              {FLASH_LOAD.usdPerGpuHr.toFixed(4)} per GPU-hr. Pro 6000 = — (no matching bench). GPU
+              rent cells are listed, not Reset.
             </Caption>
           </Table>
         </CardContent>

@@ -48,7 +48,6 @@ export function ContextDecayChart() {
           dataKey="sku5090"
           stroke="var(--color-sku5090)"
           strokeWidth={2}
-          connectNulls
           dot
         />
         <Line
@@ -56,7 +55,6 @@ export function ContextDecayChart() {
           dataKey="pro6000"
           stroke="var(--color-pro6000)"
           strokeWidth={2}
-          connectNulls
           dot
         />
       </LineChart>
