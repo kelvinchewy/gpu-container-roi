@@ -6,9 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BOUNDS } from "@/lib/roi/defaults";
 import { usd } from "@/lib/roi/format";
-import { bomSum, syncBomToPrice } from "@/lib/roi/sources";
+import { bomSum } from "@/lib/roi/sources";
 import type { SkuId, SkuInputs } from "@/lib/roi/types";
-import { cn } from "@/lib/utils";
 
 import { Field, NumberInput, PercentInput } from "./fields";
 import { RentSourceDialog, ServerBomDialog } from "./source-dialogs";
@@ -17,74 +16,45 @@ export function SkuPrimaryInputs({
   skuId,
   sku,
   onChange,
-  stacked = false,
-  bomEditable = false,
 }: {
   skuId: SkuId;
   sku: SkuInputs;
   onChange: (patch: Partial<SkuInputs>) => void;
-  stacked?: boolean;
-  bomEditable?: boolean;
 }) {
   const [bomOpen, setBomOpen] = useState(false);
   const [rentOpen, setRentOpen] = useState(false);
 
   return (
-    <div className={cn("grid gap-4", stacked ? "grid-cols-1" : "sm:grid-cols-3")}>
+    <div className="grid gap-4 sm:grid-cols-3">
       <Field
+        emphasis
         label="Server price"
         extra={
-          bomEditable ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="xs"
-              className="text-muted-foreground"
-              onClick={() => setBomOpen(true)}
-            >
-              Edit BOM
-            </Button>
-          ) : undefined
+          <Button type="button" variant="outline" size="xs" onClick={() => setBomOpen(true)}>
+            Edit BOM
+          </Button>
         }
       >
-        {bomEditable ? (
-          <>
-            <Input
-              readOnly
-              className="font-mono h-8 cursor-pointer tabular-nums"
-              value={usd(sku.serverPrice)}
-              onClick={() => setBomOpen(true)}
-              onFocus={(e) => e.currentTarget.blur()}
-            />
-            <ServerBomDialog
-              skuId={skuId}
-              lines={sku.bom}
-              open={bomOpen}
-              onOpenChange={setBomOpen}
-              onSave={(bom) => onChange({ bom, serverPrice: bomSum(bom) })}
-            />
-          </>
-        ) : (
-          <NumberInput
-            value={sku.serverPrice}
-            min={0.01}
-            step={100}
-            onChange={(serverPrice) =>
-              onChange({ serverPrice, bom: syncBomToPrice(sku.bom, serverPrice) })
-            }
-          />
-        )}
+        <Input
+          readOnly
+          className="font-mono h-8 cursor-pointer tabular-nums"
+          value={usd(sku.serverPrice)}
+          onClick={() => setBomOpen(true)}
+          onFocus={(e) => e.currentTarget.blur()}
+        />
+        <ServerBomDialog
+          skuId={skuId}
+          lines={sku.bom}
+          open={bomOpen}
+          onOpenChange={setBomOpen}
+          onSave={(bom) => onChange({ bom, serverPrice: bomSum(bom) })}
+        />
       </Field>
       <Field
+        emphasis
         label="GPU rent ($/GPU-hr)"
         extra={
-          <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            className="text-muted-foreground"
-            onClick={() => setRentOpen(true)}
-          >
+          <Button type="button" variant="outline" size="xs" onClick={() => setRentOpen(true)}>
             Source
           </Button>
         }
@@ -103,7 +73,7 @@ export function SkuPrimaryInputs({
           onOpenChange={setRentOpen}
         />
       </Field>
-      <Field label="Utilization (%)">
+      <Field emphasis label="Utilization (%)">
         <PercentInput
           value={sku.utilization}
           min={BOUNDS.utilization.min * 100}

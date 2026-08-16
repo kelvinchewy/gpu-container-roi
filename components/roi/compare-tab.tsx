@@ -16,14 +16,13 @@ import {
   multiple,
   pct,
   usd,
-  usdK,
+  usdParenK,
   years,
 } from "@/lib/roi/format";
-import type { ModelInputs, SkuId, SkuInputs, SkuResult } from "@/lib/roi/types";
+import type { ModelInputs, SkuResult } from "@/lib/roi/types";
 import { cn } from "@/lib/utils";
 
 import { CumulativeChart } from "./cumulative-chart";
-import { SkuPrimaryInputs } from "./sku-primary-inputs";
 
 type MetricRow = {
   metric: string;
@@ -108,10 +107,10 @@ function TaxSkuCells({
 }) {
   return (
     <>
-      <TableCell className="text-right font-mono">{usdK(depreciation)}</TableCell>
-      <TableCell className="text-right font-mono">{usdK(ebit)}</TableCell>
-      <TableCell className="text-right font-mono">{usdK(tax)}</TableCell>
-      <TableCell className="text-right font-mono">{nol ? usdK(nol) : "—"}</TableCell>
+      <TableCell className="text-right font-mono">{usdParenK(depreciation)}</TableCell>
+      <TableCell className="text-right font-mono">{usdParenK(ebit)}</TableCell>
+      <TableCell className="text-right font-mono">{usdParenK(tax)}</TableCell>
+      <TableCell className="text-right font-mono">{nol ? usdParenK(nol) : "—"}</TableCell>
     </>
   );
 }
@@ -218,12 +217,10 @@ export function CompareTab({
   inputs,
   sku5090,
   skuPro6000,
-  onSkuChange,
 }: {
   inputs: ModelInputs;
   sku5090: SkuResult;
   skuPro6000: SkuResult;
-  onSkuChange: (skuId: SkuId, patch: Partial<SkuInputs>) => void;
 }) {
   const caption = chartCaption(inputs, "5090 vs Pro 6000");
   const obbba = inputs.obbbaEnabled ? "OBBBA on" : "OBBBA off";
@@ -276,7 +273,7 @@ export function CompareTab({
       higherIsBetter: true,
     },
     {
-      metric: "Residual (Y5)",
+      metric: `Residual (Y${sku5090.years.length})`,
       a: usd(sku5090.residualCash),
       b: usd(skuPro6000.residualCash),
       delta: signedUsd(skuPro6000.residualCash - sku5090.residualCash),
@@ -440,26 +437,42 @@ export function CompareTab({
 
   return (
     <div className="grid gap-6">
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="grid gap-3">
-          <div className="text-sm font-medium">RTX 5090</div>
-          <SkuPrimaryInputs
-            stacked
-            skuId="5090"
-            sku={inputs.sku5090}
-            onChange={(patch) => onSkuChange("5090", patch)}
-          />
-        </div>
-        <div className="grid gap-3">
-          <div className="text-sm font-medium">Pro 6000</div>
-          <SkuPrimaryInputs
-            stacked
-            skuId="pro6000"
-            sku={inputs.skuPro6000}
-            onChange={(patch) => onSkuChange("pro6000", patch)}
-          />
-        </div>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>This run</CardTitle>
+          <CardDescription>
+            From the RTX 5090 and Pro 6000 tabs. Shared power, tax, and topology still apply above.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Input</TableHead>
+                <TableHead className="text-right">RTX 5090</TableHead>
+                <TableHead className="text-right">Pro 6000</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell>Server price</TableCell>
+                <TableCell className="text-right font-mono">{usd(inputs.sku5090.serverPrice)}</TableCell>
+                <TableCell className="text-right font-mono">{usd(inputs.skuPro6000.serverPrice)}</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>GPU rent ($/GPU-hr)</TableCell>
+                <TableCell className="text-right font-mono">${inputs.sku5090.gpuRentPerHr.toFixed(2)}</TableCell>
+                <TableCell className="text-right font-mono">${inputs.skuPro6000.gpuRentPerHr.toFixed(2)}</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>Utilization</TableCell>
+                <TableCell className="text-right font-mono">{pct(inputs.sku5090.utilization, 0)}</TableCell>
+                <TableCell className="text-right font-mono">{pct(inputs.skuPro6000.utilization, 0)}</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
       <MetricTable
         title="KPIs"
         description={`Pro 6000 − RTX 5090 · ${obbba}`}

@@ -3,13 +3,14 @@ import { monthLabel, usd, years } from "@/lib/roi/format";
 import type { SkuResult } from "@/lib/roi/types";
 
 export function KpiStrip({ result }: { result: SkuResult }) {
+  const residualYear = result.years.length;
   const items = [
     { label: "CapEx", value: usd(result.totalCapex) },
     { label: "Y1 NCF", value: usd(result.y1Ncf) },
     { label: "Payback", value: years(result.paybackYears) },
     { label: "IRR", value: result.irr == null ? "—" : `${(result.irr * 100).toFixed(2)}%` },
     { label: "NPV", value: usd(result.npv) },
-    { label: "Residual (Y5)", value: usd(result.residualCash) },
+    { label: `Residual (Y${residualYear})`, value: usd(result.residualCash) },
     { label: "Breakeven month", value: monthLabel(result.breakevenMonth) },
   ];
 

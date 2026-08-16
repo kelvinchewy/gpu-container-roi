@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DEFAULT_INPUTS } from "@/lib/roi/defaults";
 import { cloneBom } from "@/lib/roi/sources";
@@ -36,7 +37,10 @@ export function RoiApp() {
     const next = searchParamsFromState(tab, inputs).toString();
     const current = searchParams.toString();
     if (next === current) return;
-    router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
+    const id = window.setTimeout(() => {
+      router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
+    }, tab === parseTab(searchParams.get("tab")) ? 200 : 0);
+    return () => window.clearTimeout(id);
   }, [tab, inputs, pathname, router, searchParams]);
 
   function patchInputs(patch: Partial<ModelInputs>) {
@@ -50,6 +54,16 @@ export function RoiApp() {
     });
   }
 
+  function reset() {
+    setInputs(
+      clampInputs({
+        ...DEFAULT_INPUTS,
+        sku5090: { ...DEFAULT_INPUTS.sku5090, bom: cloneBom(DEFAULT_INPUTS.sku5090.bom) },
+        skuPro6000: { ...DEFAULT_INPUTS.skuPro6000, bom: cloneBom(DEFAULT_INPUTS.skuPro6000.bom) },
+      }),
+    );
+  }
+
   const showChrome = tab !== "context";
 
   if (!ready) {
@@ -58,33 +72,40 @@ export function RoiApp() {
 
   return (
     <div className="mx-auto grid max-w-6xl gap-6 px-4 py-6">
-      {showChrome ? (
-        <ChromeBar
-          inputs={inputs}
-          onChange={patchInputs}
-          onSkuChange={patchSku}
-          onReset={() => setInputs(clampInputs({
-            ...DEFAULT_INPUTS,
-            sku5090: { ...DEFAULT_INPUTS.sku5090, bom: cloneBom(DEFAULT_INPUTS.sku5090.bom) },
-            skuPro6000: { ...DEFAULT_INPUTS.skuPro6000, bom: cloneBom(DEFAULT_INPUTS.skuPro6000.bom) },
-          }))}
-        />
-      ) : (
-        <h1 className="text-lg font-medium">GPU Container ROI</h1>
-      )}
       <Tabs
         value={tab}
         onValueChange={(value) => {
           if (typeof value === "string") setTab(parseTab(value));
         }}
       >
-        <TabsList>
-          <TabsTrigger value="5090">RTX 5090</TabsTrigger>
-          <TabsTrigger value="pro6000">Pro 6000</TabsTrigger>
-          <TabsTrigger value="compare">Compare</TabsTrigger>
-          <TabsTrigger value="context">Context</TabsTrigger>
-        </TabsList>
-        <TabsContent className="pt-4" value="5090">
+        <div className="grid gap-4 border-b pb-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h1 className="text-xl font-medium tracking-tight">GPU Container ROI</h1>
+            {showChrome ? (
+              <Button variant="outline" size="sm" onClick={reset}>
+                Reset
+              </Button>
+            ) : null}
+          </div>
+          <TabsList variant="line" className="h-10 w-full min-w-0">
+            <TabsTrigger className="px-3" value="5090">
+              RTX 5090
+            </TabsTrigger>
+            <TabsTrigger className="px-3" value="pro6000">
+              Pro 6000
+            </TabsTrigger>
+            <TabsTrigger className="px-3" value="compare">
+              Compare
+            </TabsTrigger>
+            <TabsTrigger className="px-3" value="context">
+              Context
+            </TabsTrigger>
+          </TabsList>
+          {showChrome ? (
+            <ChromeBar inputs={inputs} onChange={patchInputs} onSkuChange={patchSku} />
+          ) : null}
+        </div>
+        <TabsContent className="pt-6" value="5090">
           <GpuTab
             skuId="5090"
             inputs={inputs}
@@ -92,7 +113,7 @@ export function RoiApp() {
             onSkuChange={patchSku}
           />
         </TabsContent>
-        <TabsContent className="pt-4" value="pro6000">
+        <TabsContent className="pt-6" value="pro6000">
           <GpuTab
             skuId="pro6000"
             inputs={inputs}
@@ -100,15 +121,14 @@ export function RoiApp() {
             onSkuChange={patchSku}
           />
         </TabsContent>
-        <TabsContent className="pt-4" value="compare">
+        <TabsContent className="pt-6" value="compare">
           <CompareTab
             inputs={inputs}
             sku5090={result.sku5090}
             skuPro6000={result.skuPro6000}
-            onSkuChange={patchSku}
           />
         </TabsContent>
-        <TabsContent className="pt-4" value="context">
+        <TabsContent className="pt-6" value="context">
           <ContextTab />
         </TabsContent>
       </Tabs>

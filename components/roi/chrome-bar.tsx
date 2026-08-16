@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { BOUNDS } from "@/lib/roi/defaults";
 import { kwh } from "@/lib/roi/format";
@@ -13,23 +12,16 @@ export function ChromeBar({
   inputs,
   onChange,
   onSkuChange,
-  onReset,
 }: {
   inputs: ModelInputs;
   onChange: (patch: Partial<ModelInputs>) => void;
   onSkuChange: (skuId: SkuId, patch: Partial<SkuInputs>) => void;
-  onReset: () => void;
 }) {
   return (
-    <div className="grid gap-4 border-b pb-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-lg font-medium">GPU Container ROI</h1>
-        <Button variant="outline" size="sm" onClick={onReset}>
-          Reset
-        </Button>
-      </div>
+    <div className="grid gap-4">
       <div className="grid gap-4 md:grid-cols-3">
         <Field
+          emphasis
           label="Power ($/kWh)"
           hint={`effective ${kwh(inputs.elecPerKwh * inputs.pue)}`}
         >
@@ -41,7 +33,7 @@ export function ChromeBar({
             onChange={(elecPerKwh) => onChange({ elecPerKwh })}
           />
         </Field>
-        <Field label="Discount rate (NPV)">
+        <Field emphasis label="Discount rate (NPV)">
           <PercentInput
             value={inputs.discountRate}
             min={BOUNDS.discountRate.min * 100}
@@ -51,6 +43,7 @@ export function ChromeBar({
           />
         </Field>
         <Field
+          emphasis
           label="Price decay (%/yr)"
           extra={
             <Switch

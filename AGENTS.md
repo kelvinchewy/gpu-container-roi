@@ -50,7 +50,7 @@ Four tabs, one engine. Switching tabs does not reset inputs. Shared fields updat
 | --- | --- | --- |
 | 1 | **RTX 5090** (default) | Inputs, KPIs, charts, matrix for this GPU. |
 | 2 | **Pro 6000** | Same layout as tab 1, other GPU. |
-| 3 | **Compare** | Both SKUs, overlay chart, dual primary sliders, delta table. |
+| 3 | **Compare** | Both SKUs, overlay chart, readout of GPU-tab inputs, delta table. |
 | 4 | **Context** | Independent listed comps (EcoHash vs market), exclusions. Not the calculator. No BOM. |
 
 Query `?tab=5090|pro6000|compare|context` (default `5090`).
@@ -86,13 +86,13 @@ Order, top to bottom:
 2. KPI strip — CapEx, Y1 NCF, Payback (yrs), IRR, NPV, Breakeven month
 3. Combined P&L + cumulative — Y0–Yn. Title: `P&L and cumulative NCF ($)`. Caption: `{SKU} · {site} · tax · topology · PUE · OBBBA on/off · decay on/off`
 4. Sensitivity matrix — utilization × price decay, cell = breakeven month
-5. One collapsed disclosure: yearly P&L + cash-flow table. Optional OpEx stacked bar inside. No inner tab strip.
+5. Yearly P&L + cash-flow table, **open by default**. Optional OpEx stacked bar inside. No inner tab strip.
 
 Do not put the other SKU on these tabs.
 
 ### Tab 3 — Compare
 
-1. Two slim input columns — 5090 | Pro 6000 (server price, rent, utilization). Shared chrome still applies.
+1. Two readout columns — 5090 | Pro 6000 (server price, rent, utilization) from the GPU tabs. Not editable here. Shared chrome still applies.
 2. KPI delta table — Pro 6000 − 5090 for CapEx, Y1 NCF, Payback, IRR, NPV, Residual (Y5), breakeven month.
 3. **Returns** table — cash-on-cash, total ROI, MOIC (Excel C75 / C80 / C87). Cash-on-cash = mean operating NCF / CapEx. MOIC includes residual.
 4. **Tax path** table — Year × Dep / EBIT / Tax / NOL for both SKUs. Makes OBBBA vs SL visible (Y1 bonus = depreciable basis).
@@ -141,7 +141,7 @@ URL search params serialize A + B + view toggles only. Missing params = defaults
 
 Show **effective** `$/kWh` next to power: `elecPerKwh × pue`. Input is tariff `$/kWh`. Default `$0.06` (PPT-style). Excel ScenA `$60/kW-month` = `$0.0822/kWh`. Erosion default **off**. Show `priceErosionRate` only when erosion is on.
 
-**Per SKU (GPU tabs 1–2, and two columns on Compare):**
+**Per SKU (GPU tabs 1–2 only):**
 
 | Key | Label | 5090 default | Pro 6000 default | Bounds |
 | --- | --- | --- | --- | --- |

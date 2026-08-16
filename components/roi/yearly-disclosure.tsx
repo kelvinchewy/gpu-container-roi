@@ -90,7 +90,7 @@ const HEADS: { label: string; tip: string }[] = [
 
 export function YearlyDisclosure({ result }: { result: SkuResult }) {
   return (
-    <Accordion>
+    <Accordion defaultValue={["yearly"]}>
       <AccordionItem value="yearly">
         <AccordionTrigger>Yearly P&L + cash flow</AccordionTrigger>
         <AccordionContent>

@@ -11,6 +11,7 @@ export function Field({
   extra,
   children,
   className,
+  emphasis = false,
   onLabelDoubleClick,
 }: {
   label: string;
@@ -18,6 +19,7 @@ export function Field({
   extra?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
+  emphasis?: boolean;
   onLabelDoubleClick?: () => void;
 }) {
   return (
@@ -27,9 +29,7 @@ export function Field({
     >
       <div className="flex items-baseline justify-between gap-2">
         <div className="flex items-center gap-1.5">
-          <Label
-            className="text-xs text-muted-foreground"
-          >
+          <Label className={emphasis ? undefined : "text-xs text-muted-foreground"}>
             {label}
           </Label>
           {extra}

@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SKU_LABEL } from "@/lib/roi/defaults";
 import { chartCaption } from "@/lib/roi/format";
 import type { ModelInputs, SkuId, SkuInputs, SkuResult } from "@/lib/roi/types";
 
@@ -26,12 +27,21 @@ export function GpuTab({
 
   return (
     <div className="grid gap-6">
-      <SkuPrimaryInputs
-        bomEditable
-        skuId={skuId}
-        sku={sku}
-        onChange={(patch) => onSkuChange(skuId, patch)}
-      />
+      <Card>
+        <CardHeader>
+          <CardTitle>{SKU_LABEL[skuId]}</CardTitle>
+          <CardDescription>
+            Server price, GPU rent, and utilization. Edits this SKU only.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SkuPrimaryInputs
+            skuId={skuId}
+            sku={sku}
+            onChange={(patch) => onSkuChange(skuId, patch)}
+          />
+        </CardContent>
+      </Card>
       <KpiStrip result={result} />
       <Card>
         <CardHeader>
