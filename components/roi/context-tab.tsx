@@ -158,26 +158,31 @@ export function ContextTab() {
           </Table>
 
           <ContextDecayChart />
-          <p className="text-xs text-muted-foreground">
-            Dotted = forecast (last listed print held) at Aug 2027 and Aug 2029. Pro 6000 has
-            no May/Jul print — straight line spans the gap. OpEx break-even{" "}
-            {usd(OPEX_BREAK_EVEN_PER_GPU_HR, 2)}/GPU-hr on the 5090 chart. PUE 1.3 · $0.06/kWh →
-            electricity ~{usd(ELEC_PER_GPU_HR_TDP, 2)} (575 W) vs suggested{" "}
-            {usd(SUGGESTED_RENT.sku5090, 2)} (5090) / {usd(SUGGESTED_RENT.pro6000, 2)} (Pro 6000).
-            Does not feed runModel. Aug 2025 and Aug 2026: median on-demand on{" "}
-            <a className="underline underline-offset-4" href={CITE.listing5090}>
-              getdeploying 5090
-            </a>
-            {" and "}
-            <a className="underline underline-offset-4" href={CITE.listingPro6000}>
-              Pro 6000
-            </a>
-            . May 2026: Spheron 5090 list (no archive URL here). Jul 2026:{" "}
-            <a className="underline underline-offset-4" href={CITE.packet5090}>
-              Packet.ai
-            </a>{" "}
-            5090 median.
-          </p>
+          <div className="grid gap-2 text-xs text-muted-foreground">
+            <p>
+              RTX 5090 · listed Aug 2025–Aug 2026 (
+              <a className="underline underline-offset-4" href={CITE.listing5090}>
+                getdeploying
+              </a>
+              ; May Spheron; Jul{" "}
+              <a className="underline underline-offset-4" href={CITE.packet5090}>
+                Packet.ai
+              </a>
+              ). Dotted forecast = last print held to Aug 2027 and Aug 2029. Grey line = OpEx
+              break-even {usd(OPEX_BREAK_EVEN_PER_GPU_HR, 2)}/GPU-hr. Electricity ~
+              {usd(ELEC_PER_GPU_HR_TDP, 2)} (PUE 1.3 · $0.06/kWh · 575 W) vs suggested{" "}
+              {usd(SUGGESTED_RENT.sku5090, 2)}.
+            </p>
+            <p>
+              Pro 6000 · listed Aug 2025 and Aug 2026 (
+              <a className="underline underline-offset-4" href={CITE.listingPro6000}>
+                getdeploying
+              </a>
+              ). No May/Jul print; straight line spans the gap. Dotted forecast = last print held
+              to Aug 2027 and Aug 2029. Suggested {usd(SUGGESTED_RENT.pro6000, 2)}. Does not feed
+              runModel.
+            </p>
+          </div>
         </CardContent>
       </Card>
 
