@@ -36,7 +36,7 @@ type MetricRow = {
 function deltaClass(value: number | null, higherIsBetter: boolean): string {
   if (value == null || Math.abs(value) < 1e-12) return "text-muted-foreground";
   const proBetter = higherIsBetter ? value > 0 : value < 0;
-  return proBetter ? "text-chart-2" : "text-destructive";
+  return proBetter ? "text-gain" : "text-destructive";
 }
 
 function HeadTip({ label, tip }: { label: string; tip: string }) {
@@ -185,7 +185,7 @@ function MetricTable({
               <TableHead className="text-right">
                 <HeadTip
                   label="Delta"
-                  tip="Pro 6000 − RTX 5090. Teal = Pro 6000 better on this metric. Red = 5090 better."
+                  tip="Pro 6000 − RTX 5090. Sign shows who is better. Blue = Pro 6000. Muted = 5090."
                 />
               </TableHead>
             </TableRow>

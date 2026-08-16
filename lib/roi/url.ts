@@ -128,6 +128,7 @@ function parseBool(raw: string | null): boolean | undefined {
 }
 
 export function parseTab(raw: string | null): TabId {
+  if (raw === "context") return "research";
   if (raw && (TABS as readonly string[]).includes(raw)) return raw as TabId;
   return "5090";
 }

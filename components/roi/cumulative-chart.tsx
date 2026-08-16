@@ -14,9 +14,9 @@ import { usdK } from "@/lib/roi/format";
 import type { SkuResult } from "@/lib/roi/types";
 
 const config: ChartConfig = {
-  a: { label: "RTX 5090", color: "var(--chart-2)" },
+  a: { label: "RTX 5090", color: "var(--chart-3)" },
   b: { label: "Pro 6000", color: "var(--chart-1)" },
-  cum: { label: "Cumulative NCF", color: "var(--chart-3)" },
+  cum: { label: "Cumulative NCF", color: "var(--chart-1)" },
 };
 
 export function CumulativeChart({

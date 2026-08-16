@@ -4,14 +4,14 @@ This is the project contract. Cursor loads this file the way Claude Code loads `
 
 **Working title:** GPU Container ROI
 **Audience:** English-speaking project managers underwriting a containerized AI data center.
-**Job:** Four tabs. Tabs 1–2: inputs, KPIs, charts, matrix for one GPU. Tab 3: 5090 vs Pro 6000. Tab 4: PPT facts as tables. No marketing copy.
+**Job:** Four tabs. Tabs 1–2: inputs, KPIs, charts, matrix for one GPU. Tab 3: 5090 vs Pro 6000. Tab 4: listed comps as tables. No marketing copy.
 
 ---
 
 ## Northstar decisions
 
 - **Excel is the calculator.** Port formulas from the local workbook `GPU_ROI_Model_5090_Atlanta_v5_ScenA.xlsx` (sheets `ROI Model 5090` and `ROI Model pro 6000`). Do not invent math. The workbook and PPT are **not** in git; golden tests in `lib/roi/engine.test.ts` are the public pin.
-- **The PPT is not a public source.** Hardware BOM lives on GPU tabs 1–2 only. Context is independent listed research with public URLs. **Never use PPT financial totals.** No prose paragraphs in the UI.
+- **The PPT is not a public source.** Hardware BOM lives on GPU tabs 1–2 only. Research is independent listed comps with public URLs. **Never use PPT financial totals.** No prose paragraphs in the UI.
 - **Deal (one line, on chrome chip):** Owner-operator · 100% of GPU-hour rent · EcoHash deploys · unlevered. Not a colo waterfall.
 - **Access:** internal, no auth. Do not submit the Vercel URL to public directories.
 - **Language v1: English only.** US PM English. Labels match Excel English (`Server price`, `Utilization`, `Payback`, `NPV`). No Chinese sublabels. A language switch or `/zh` is later.
@@ -23,9 +23,9 @@ This is the project contract. Cursor loads this file the way Claude Code loads `
 
 | Source | Use for | Do not use for |
 | --- | --- | --- |
-| Excel v5 Atlanta ScenA | Engine, defaults, golden tests | Context prose |
-| PPT v2 CN | Context tab tables: BOM, market comps | Capex, rent, util, PUE, payback, IRR, NPV |
-| EcoHash URLs | One link row on Context | A second P&L |
+| Excel v5 Atlanta ScenA | Engine, defaults, golden tests | Research prose |
+| PPT v2 CN | Research tab tables: BOM, market comps | Capex, rent, util, PUE, payback, IRR, NPV |
+| EcoHash URLs | One link row on Research | A second P&L |
 
 Excel and PPT disagree. Examples for RTX 5090:
 
@@ -38,7 +38,7 @@ Excel and PPT disagree. Examples for RTX 5090:
 | Power | $60 / kW-month | $0.06 / kWh |
 | Total capex | $3.687M | $2.70M |
 
-Context tab is independent listed research (EcoHash vs market, exclusions). It does not feed the engine unless the user explicitly asks. Tabs 1, 2, and 3 render **live Excel-engine output**. BOM is editable on tabs 1–2 only.
+Research tab is independent listed comps (EcoHash vs market, exclusions). It does not feed the engine unless the user explicitly asks. Tabs 1, 2, and 3 render **live Excel-engine output**. BOM is editable on tabs 1–2 only.
 
 ---
 
@@ -51,9 +51,9 @@ Four tabs, one engine. Switching tabs does not reset inputs. Shared fields updat
 | 1 | **RTX 5090** (default) | Inputs, KPIs, charts, matrix for this GPU. |
 | 2 | **Pro 6000** | Same layout as tab 1, other GPU. |
 | 3 | **Compare** | Both SKUs, overlay chart, readout of GPU-tab inputs, delta table. |
-| 4 | **Context** | Independent listed comps (EcoHash vs market), exclusions. Not the calculator. No BOM. |
+| 4 | **Research** | Independent listed comps (EcoHash vs market), exclusions. Not the calculator. No BOM. |
 
-Query `?tab=5090|pro6000|compare|context` (default `5090`).
+Query `?tab=5090|pro6000|compare|research` (default `5090`). `?tab=context` still opens Research.
 
 ```
 EditableInputs → lib/roi/engine.ts → shared state → all four tabs
@@ -61,7 +61,7 @@ EditableInputs → lib/roi/engine.ts → shared state → all four tabs
 
 There is **no SKU toggle** and **no Dashboard/Brief/Story/Lab**. Tabs 1 and 2 *are* the SKUs.
 
-### Chrome (tabs 1, 2, 3 — not Context)
+### Chrome (tabs 1, 2, 3 — not Research)
 
 Compact bar above the tab strip:
 
@@ -74,7 +74,7 @@ Shared controls appear **once** in chrome (power, discount, decay, plus the Site
 
 IT load and residual are per-SKU and sit in that accordion under **Per GPU** (both SKUs always visible).
 
-Context has no chrome inputs.
+Research has no chrome inputs.
 
 ### Tabs 1 and 2 — GPU workbench (identical layout)
 
@@ -101,13 +101,13 @@ Do not put the other SKU on these tabs.
 7. Overlay cumulative cash (two lines, zero line). Title: `Cumulative NCF ($)`
 8. No matrices. No “winner” sentence. Sign on delta shows who is better on that metric.
 
-### Tab 4 — Context
+### Tab 4 — Research
 
-Independent listed research. Tables and a bullet exclusion list. No paragraphs. Do **not** show calculator rents, Excel defaults, Reset, NPV, or IRR here. Do **not** feed these `$` into `runModel` unless the user explicitly asks.
+Independent listed comps. Tables and a bullet exclusion list. No paragraphs. Do **not** show Excel defaults, NPV, or IRR here. GPU-hour chart caption may cite Reset rents vs electricity as a check. Do **not** feed these `$` into `runModel` unless the user explicitly asks.
 
 1. Sold as — two-row unit table (bare metal `/GPU-hr` vs tokens `/M tok`)
 2. Best for — one side-by-side job table (5090 | Pro 6000), paired with listing pie and cloud GPU $ mix pie (cite getdeploying + Dataintelo)
-3. What the market pays — EcoHash vs listed GPU-hour (venue under each $); 5090 / Pro 6000 listed $/GPU-hr line only
+3. What the market pays — EcoHash vs listed GPU-hour (venue under each $); two listed $/GPU-hr charts (5090 | Pro 6000), each with own scale; dotted forecast (last print held) at Aug 2027 and Aug 2029; Pro 6000 straight line spans May/Jul gap; OpEx break-even on the 5090 chart. Does not feed `runModel`.
 4. How DeepSeek-V4-Flash bills — input vs output (OpenRouter $0.14/$0.28 · EcoHash $0.16/$0.33). Same unit · $/GPU-hr: two SKU rows. 5090 token/hr from measured 8×5090 full load (6,500 in / 1,500 out tok/s, agentic 10:1, $2.74/8 = $0.34). Pro 6000 token = —. Check only.
 5. Exclusion list (bullets): no util ramp; no freight/customs/install; no EcoHash fee; Y1 = full year at stated util; unlevered; residual = servers only
 6. Links row: ecohash.com · ecohash.com/pricing · colocation.ecohash.com · getdeploying · Dataintelo
@@ -149,7 +149,7 @@ Show **effective** `$/kWh` next to power: `elecPerKwh × pue`. Input is tariff `
 | `gpuRentPerHr` | GPU rent ($/GPU-hr) | `$0.63` | `$1.73` | 0.01–10 |
 | `utilization` | Utilization | `100%` | `100%` | 40–100% |
 
-Context has no inputs.
+Research has no inputs.
 
 ### B — Rarely touched (accordion in chrome, tabs 1–3)
 
@@ -226,7 +226,7 @@ Also derived: revenue, each OpEx line, EBITDA, depreciation, EBIT, tax, NCF, per
 
 ### E — View toggles (not model inputs)
 
-- Top tab: `5090` | `pro6000` | `context` | `compare`
+- Top tab: `5090` | `pro6000` | `research` | `compare`
 - Depreciation follows `obbbaEnabled`, not a view toggle
 
 ---
@@ -380,7 +380,7 @@ Auth, saved accounts, live GPU-spot APIs, debt / leverage, PDF export, 50-state 
 
 ## Later
 
-- Language switch or `/zh` (translate UI + Context; engine stays the same)
+- Language switch or `/zh` (translate UI + Research; engine stays the same)
 - Deploy-to-energize calendar / utilization ramp
 - Debt module
 - Live rental comps

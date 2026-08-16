@@ -64,7 +64,7 @@ export function RoiApp() {
     );
   }
 
-  const showChrome = tab !== "context";
+  const showChrome = tab !== "research";
 
   if (!ready) {
     return <main className="p-6 text-sm text-muted-foreground">Loading</main>;
@@ -87,18 +87,33 @@ export function RoiApp() {
               </Button>
             ) : null}
           </div>
-          <TabsList variant="line" className="h-10 w-full min-w-0 overflow-x-auto">
-            <TabsTrigger className="px-2 text-xs sm:px-3 sm:text-sm" value="5090">
+          <TabsList
+            className="h-11 w-full min-w-0 overflow-x-auto rounded-lg border bg-primary/10"
+            aria-label="Section"
+          >
+            <TabsTrigger
+              className="px-3 text-sm data-active:bg-primary data-active:text-primary-foreground data-active:shadow-sm"
+              value="5090"
+            >
               RTX 5090
             </TabsTrigger>
-            <TabsTrigger className="px-2 text-xs sm:px-3 sm:text-sm" value="pro6000">
+            <TabsTrigger
+              className="px-3 text-sm data-active:bg-primary data-active:text-primary-foreground data-active:shadow-sm"
+              value="pro6000"
+            >
               Pro 6000
             </TabsTrigger>
-            <TabsTrigger className="px-2 text-xs sm:px-3 sm:text-sm" value="compare">
+            <TabsTrigger
+              className="px-3 text-sm data-active:bg-primary data-active:text-primary-foreground data-active:shadow-sm"
+              value="compare"
+            >
               Compare
             </TabsTrigger>
-            <TabsTrigger className="px-2 text-xs sm:px-3 sm:text-sm" value="context">
-              Context
+            <TabsTrigger
+              className="px-3 text-sm data-active:bg-primary data-active:text-primary-foreground data-active:shadow-sm"
+              value="research"
+            >
+              Research
             </TabsTrigger>
           </TabsList>
           {showChrome ? (
@@ -128,7 +143,7 @@ export function RoiApp() {
             skuPro6000={result.skuPro6000}
           />
         </TabsContent>
-        <TabsContent className="pt-6" value="context">
+        <TabsContent className="pt-6" value="research">
           <ContextTab />
         </TabsContent>
       </Tabs>

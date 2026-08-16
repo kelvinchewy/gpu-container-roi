@@ -1,7 +1,7 @@
 export const SKU_IDS = ["5090", "pro6000"] as const;
 export type SkuId = (typeof SKU_IDS)[number];
 
-export const TABS = ["5090", "pro6000", "compare", "context"] as const;
+export const TABS = ["5090", "pro6000", "compare", "research"] as const;
 export type TabId = (typeof TABS)[number];
 
 export type BomLine = {

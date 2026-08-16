@@ -12,11 +12,11 @@ function cellTint(month: number | null, min: number, max: number): string {
   if (month == null) return "bg-muted text-muted-foreground";
   const span = Math.max(max - min, 1);
   const t = (month - min) / span;
-  if (t <= 0.2) return "bg-primary/20";
+  if (t <= 0.2) return "bg-primary/25";
   if (t <= 0.4) return "bg-primary/15";
   if (t <= 0.6) return "bg-primary/10";
-  if (t <= 0.8) return "bg-muted";
-  return "bg-destructive/10";
+  if (t <= 0.8) return "bg-accent";
+  return "text-muted-foreground";
 }
 
 export function SensitivityMatrix({

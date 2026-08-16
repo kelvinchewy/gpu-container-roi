@@ -16,6 +16,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { usd } from "@/lib/roi/format";
+import {
+  ELEC_PER_GPU_HR_TDP,
+  OPEX_BREAK_EVEN_PER_GPU_HR,
+  SUGGESTED_RENT,
+} from "@/lib/roi/listed-forecast";
 import {
   CITE,
   CONTEXT_AS_OF,
@@ -112,7 +118,7 @@ export function ContextTab() {
             {CONTEXT_AS_OF}. EcoHash billed per second. High = hyperscaler.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="grid gap-6">
           <Table>
             <TableHeader>
               <TableRow>
@@ -150,18 +156,15 @@ export function ContextTab() {
               </a>
             </Caption>
           </Table>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Listed $/GPU-hr</CardTitle>
-          <CardDescription>Median on-demand.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3">
           <ContextDecayChart />
           <p className="text-xs text-muted-foreground">
-            Aug 2025 and Aug 2026: median on-demand on{" "}
+            Dotted = forecast (last listed print held) at Aug 2027 and Aug 2029. Pro 6000 has
+            no May/Jul print — straight line spans the gap. OpEx break-even{" "}
+            {usd(OPEX_BREAK_EVEN_PER_GPU_HR, 2)}/GPU-hr on the 5090 chart. PUE 1.3 · $0.06/kWh →
+            electricity ~{usd(ELEC_PER_GPU_HR_TDP, 2)} (575 W) vs suggested{" "}
+            {usd(SUGGESTED_RENT.sku5090, 2)} (5090) / {usd(SUGGESTED_RENT.pro6000, 2)} (Pro 6000).
+            Does not feed runModel. Aug 2025 and Aug 2026: median on-demand on{" "}
             <a className="underline underline-offset-4" href={CITE.listing5090}>
               getdeploying 5090
             </a>
@@ -173,7 +176,7 @@ export function ContextTab() {
             <a className="underline underline-offset-4" href={CITE.packet5090}>
               Packet.ai
             </a>{" "}
-            5090 median. Pro 6000 has no May/Jul print — gaps are gaps, not a drawn path.
+            5090 median.
           </p>
         </CardContent>
       </Card>
