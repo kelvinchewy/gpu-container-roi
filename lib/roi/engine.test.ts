@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { DEFAULT_INPUTS, EXCEL_ELEC_PER_KWH, EXCEL_RENT } from "./defaults";
 import { runModel } from "./engine";
-import { chartCaption, usdK } from "./format";
+import { chartCaption, usdK, usdParenK } from "./format";
 import type { ModelInputs } from "./types";
 
 function run(overrides: Partial<ModelInputs> = {}) {
@@ -30,6 +30,9 @@ describe("display format", () => {
     expect(usdK(344_342)).toBe("$344k");
     expect(usdK(-3_687_000)).toBe("-$3,687k");
     expect(usdK(0)).toBe("$0k");
+    expect(usdParenK(-3_687_000)).toBe("($3,687k)");
+    expect(usdParenK(1_148_815)).toBe("$1,149k");
+    expect(usdParenK(0)).toBe("$0k");
   });
 
   it("caption includes site, tax, topology, PUE, OBBBA, decay", () => {

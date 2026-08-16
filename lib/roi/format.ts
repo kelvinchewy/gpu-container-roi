@@ -13,8 +13,16 @@ export function usd(value: number, digits = 0): string {
 export function usdK(value: number): string {
   const k = Math.round(value / 1000);
   if (k === 0) return "$0k";
-  const sign = k < 0 ? "-" : "";
-  return `${sign}$${Math.abs(k).toLocaleString("en-US")}k`;
+  const body = `$${Math.abs(k).toLocaleString("en-US")}k`;
+  return k < 0 ? `-${body}` : body;
+}
+
+/** $000 for dense tables. Negatives in parentheses. */
+export function usdParenK(value: number): string {
+  const k = Math.round(value / 1000);
+  if (k === 0) return "$0k";
+  const body = `$${Math.abs(k).toLocaleString("en-US")}k`;
+  return k < 0 ? `(${body})` : body;
 }
 
 export function usdCompact(value: number): string {
