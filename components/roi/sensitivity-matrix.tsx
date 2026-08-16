@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
+import { useDeferredValue, useMemo } from "react";
 
 import { MATRIX_DECAY, MATRIX_UTILS } from "@/lib/roi/defaults";
-import { breakevenMatrix, nearestIndex } from "@/lib/roi/matrix";
 import { monthLabel } from "@/lib/roi/format";
+import { breakevenMatrix, nearestIndex } from "@/lib/roi/matrix";
 import type { ModelInputs, SkuId } from "@/lib/roi/types";
 import { cn } from "@/lib/utils";
 
@@ -26,20 +26,36 @@ export function SensitivityMatrix({
   inputs: ModelInputs;
   skuId: SkuId;
 }) {
-  const grid = useMemo(() => breakevenMatrix(inputs, skuId), [inputs, skuId]);
+  const deferredInputs = useDeferredValue(inputs);
+  const grid = useMemo(
+    () => breakevenMatrix(deferredInputs, skuId),
+    [deferredInputs, skuId],
+  );
   const months = grid.flat().filter((m): m is number => m != null);
   const min = months.length ? Math.min(...months) : 0;
   const max = months.length ? Math.max(...months) : 1;
 
-  const sku = skuId === "5090" ? inputs.sku5090 : inputs.skuPro6000;
+  const sku = skuId === "5090" ? deferredInputs.sku5090 : deferredInputs.skuPro6000;
   const utilIndex = nearestIndex(MATRIX_UTILS, sku.utilization);
-  const decayTarget = inputs.priceErosionOn ? inputs.priceErosionRate : 0;
+  const decayTarget = deferredInputs.priceErosionOn ? deferredInputs.priceErosionRate : 0;
   const decayIndex = nearestIndex(MATRIX_DECAY, decayTarget);
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-center text-xs">
+        <caption className="sr-only">
+          Breakeven month by utilization and price decay
+        </caption>
         <thead>
+          <tr>
+            <th className="p-2 text-left font-medium text-muted-foreground" />
+            <th
+              colSpan={MATRIX_UTILS.length}
+              className="p-2 font-medium text-muted-foreground"
+            >
+              Utilization
+            </th>
+          </tr>
           <tr>
             <th className="p-2 text-left font-medium text-muted-foreground">
               Price decay

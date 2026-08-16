@@ -1,9 +1,17 @@
 "use client";
 
+import { createContext, useContext, useId, useState } from "react";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+
+const FieldIdContext = createContext<string | undefined>(undefined);
+
+export function useFieldId() {
+  return useContext(FieldIdContext);
+}
 
 export function Field({
   label,
@@ -22,22 +30,25 @@ export function Field({
   emphasis?: boolean;
   onLabelDoubleClick?: () => void;
 }) {
+  const id = useId();
   return (
-    <div
-      className={cn("grid gap-1.5", className)}
-      onDoubleClick={onLabelDoubleClick}
-    >
-      <div className="flex items-baseline justify-between gap-2">
-        <div className="flex items-center gap-1.5">
-          <Label className={emphasis ? undefined : "text-xs text-muted-foreground"}>
-            {label}
-          </Label>
-          {extra}
+    <FieldIdContext.Provider value={id}>
+      <div className={cn("grid gap-1.5", className)} onDoubleClick={onLabelDoubleClick}>
+        <div className="flex items-baseline justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <Label
+              htmlFor={id}
+              className={emphasis ? undefined : "text-xs text-muted-foreground"}
+            >
+              {label}
+            </Label>
+            {extra}
+          </div>
+          {hint ? <span className="font-mono text-xs text-muted-foreground">{hint}</span> : null}
         </div>
-        {hint ? <span className="font-mono text-xs text-muted-foreground">{hint}</span> : null}
+        {children}
       </div>
-      {children}
-    </div>
+    </FieldIdContext.Provider>
   );
 }
 
@@ -56,18 +67,27 @@ export function NumberInput({
   step?: number;
   className?: string;
 }) {
+  const id = useFieldId();
+  const [draft, setDraft] = useState<string | null>(null);
+  const display = draft ?? (Number.isFinite(value) ? String(value) : "");
+
   return (
     <Input
+      id={id}
       type="number"
       className={cn("font-mono h-8 tabular-nums", className)}
-      value={Number.isFinite(value) ? value : ""}
+      value={display}
       min={min}
       max={max}
       step={step}
       onChange={(e) => {
+        const raw = e.target.value;
+        setDraft(raw);
+        if (raw === "" || raw === "-" || raw === "." || raw === "-.") return;
         const n = e.target.valueAsNumber;
         if (Number.isFinite(n)) onChange(n);
       }}
+      onBlur={() => setDraft(null)}
     />
   );
 }
@@ -111,10 +131,13 @@ export function SwitchField({
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
 }) {
+  const id = useId();
   return (
     <div className="flex items-center justify-between gap-3">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      <Switch checked={checked} onCheckedChange={onCheckedChange} />
+      <Label htmlFor={id} className="text-xs text-muted-foreground">
+        {label}
+      </Label>
+      <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
     </div>
   );
 }

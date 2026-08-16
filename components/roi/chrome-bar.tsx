@@ -49,6 +49,7 @@ export function ChromeBar({
             <Switch
               size="sm"
               checked={inputs.priceErosionOn}
+              aria-label="Apply price decay"
               onCheckedChange={(checked) => onChange({ priceErosionOn: Boolean(checked) })}
             />
           }

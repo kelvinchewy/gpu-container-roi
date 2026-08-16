@@ -3,14 +3,29 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { BOUNDS } from "@/lib/roi/defaults";
 import { usd } from "@/lib/roi/format";
 import { bomSum } from "@/lib/roi/sources";
 import type { SkuId, SkuInputs } from "@/lib/roi/types";
 
-import { Field, NumberInput, PercentInput } from "./fields";
+import { Field, NumberInput, PercentInput, useFieldId } from "./fields";
 import { RentSourceDialog, ServerBomDialog } from "./source-dialogs";
+
+function ServerPriceButton({ price, onOpen }: { price: number; onOpen: () => void }) {
+  const id = useFieldId();
+  return (
+    <Button
+      id={id}
+      type="button"
+      variant="outline"
+      aria-haspopup="dialog"
+      className="h-8 w-full justify-start font-mono tabular-nums"
+      onClick={onOpen}
+    >
+      {usd(price)}
+    </Button>
+  );
+}
 
 export function SkuPrimaryInputs({
   skuId,
@@ -35,13 +50,7 @@ export function SkuPrimaryInputs({
           </Button>
         }
       >
-        <Input
-          readOnly
-          className="font-mono h-8 cursor-pointer tabular-nums"
-          value={usd(sku.serverPrice)}
-          onClick={() => setBomOpen(true)}
-          onFocus={(e) => e.currentTarget.blur()}
-        />
+        <ServerPriceButton price={sku.serverPrice} onOpen={() => setBomOpen(true)} />
         <ServerBomDialog
           skuId={skuId}
           lines={sku.bom}

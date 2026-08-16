@@ -10,6 +10,18 @@ import { cn } from "@/lib/utils"
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const
 
+function cssToken(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  if (/^var\(--[a-zA-Z0-9-]+\)$/.test(value)) return value;
+  if (/^#[0-9a-fA-F]{3,8}$/.test(value)) return value;
+  return undefined;
+}
+
+function cssIdent(value: string): string | undefined {
+  if (/^[a-zA-Z_][\w-]*$/.test(value)) return value;
+  return undefined;
+}
+
 const INITIAL_DIMENSION = { width: 320, height: 200 } as const
 type TooltipNameType = number | string
 
@@ -58,7 +70,7 @@ function ChartContainer({
   }
 }) {
   const uniqueId = React.useId()
-  const chartId = `chart-${id ?? uniqueId.replace(/:/g, "")}`
+  const chartId = `chart-${(id ?? uniqueId).replace(/[^a-zA-Z0-9_-]/g, "")}`
 
   return (
     <ChartContext.Provider value={{ config }}>
@@ -100,10 +112,12 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
 ${prefix} [data-chart=${id}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
-    const color =
+    const ident = cssIdent(key)
+    const color = cssToken(
       itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ??
-      itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
+        itemConfig.color
+    )
+    return ident && color ? `  --color-${ident}: ${color};` : null
   })
   .join("\n")}
 }

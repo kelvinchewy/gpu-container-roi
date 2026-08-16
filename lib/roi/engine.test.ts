@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_INPUTS, EXCEL_ELEC_PER_KWH, EXCEL_RENT } from "./defaults";
 import { runModel } from "./engine";
 import { chartCaption, usdK, usdParenK } from "./format";
+import { clampInputs } from "./url";
 import type { ModelInputs } from "./types";
 
 function run(overrides: Partial<ModelInputs> = {}) {
@@ -44,6 +45,11 @@ describe("display format", () => {
     expect(caption).toContain("PUE 1.30");
     expect(caption).toContain("OBBBA on");
     expect(caption).toContain("decay off");
+  });
+
+  it("clamps site name to 80 characters", () => {
+    const next = clampInputs({ ...DEFAULT_INPUTS, siteName: "x".repeat(200) });
+    expect(next.siteName.length).toBe(80);
   });
 });
 

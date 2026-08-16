@@ -87,17 +87,17 @@ export function RoiApp() {
               </Button>
             ) : null}
           </div>
-          <TabsList variant="line" className="h-10 w-full min-w-0">
-            <TabsTrigger className="px-3" value="5090">
+          <TabsList variant="line" className="h-10 w-full min-w-0 overflow-x-auto">
+            <TabsTrigger className="px-2 text-xs sm:px-3 sm:text-sm" value="5090">
               RTX 5090
             </TabsTrigger>
-            <TabsTrigger className="px-3" value="pro6000">
+            <TabsTrigger className="px-2 text-xs sm:px-3 sm:text-sm" value="pro6000">
               Pro 6000
             </TabsTrigger>
-            <TabsTrigger className="px-3" value="compare">
+            <TabsTrigger className="px-2 text-xs sm:px-3 sm:text-sm" value="compare">
               Compare
             </TabsTrigger>
-            <TabsTrigger className="px-3" value="context">
+            <TabsTrigger className="px-2 text-xs sm:px-3 sm:text-sm" value="context">
               Context
             </TabsTrigger>
           </TabsList>

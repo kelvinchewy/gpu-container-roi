@@ -27,7 +27,7 @@ function clampSku(sku: SkuInputs, fallbackIt: number): SkuInputs {
 export function clampInputs(inputs: ModelInputs): ModelInputs {
   return {
     ...inputs,
-    siteName: inputs.siteName,
+    siteName: inputs.siteName.trim().slice(0, 80),
     elecPerKwh: clamp(inputs.elecPerKwh, BOUNDS.elecPerKwh.min, BOUNDS.elecPerKwh.max),
     discountRate: clamp(inputs.discountRate, BOUNDS.discountRate.min, BOUNDS.discountRate.max),
     priceErosionRate: clamp(
