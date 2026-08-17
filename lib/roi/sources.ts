@@ -113,13 +113,24 @@ export const CITE = {
   dataintelo: "https://dataintelo.com/report/cloud-gpu-instance-market",
   ecohashPricing: "https://ecohash.com/pricing",
   openrouterFlash: "https://openrouter.ai/deepseek/deepseek-v4-flash",
+  openrouterLlama70: "https://openrouter.ai/meta-llama/llama-3.3-70b-instruct",
   vast: "https://vast.ai/",
   runpod5090: "https://www.runpod.io/gpu-models/rtx-5090",
   runpodPro6000: "https://www.runpod.io/gpu-models/rtx-pro-6000",
   packet5090: "https://packet.ai/blog/rtx-5090-cloud-gpu-ai",
+  spheron5090vsPro:
+    "https://www.spheron.network/blog/rtx-5090-vs-rtx-pro-6000-blackwell-comparison/",
+  dellProVsConsumer:
+    "https://www.dell.com/en-us/blog/professional-vs-consumer-gpus-the-card-for-your-workflow/",
+  mercatusLongContext: "https://www.mercatus-ai.com/blog/h100-vs-h200",
+  pugetResolveVram:
+    "https://thepostflow.com/post-production/editing-hardware/best-gpu-for-video-editing/",
+  nvidia5090: "https://www.nvidia.com/en-us/geforce/graphics-cards/50-series/rtx-5090/",
+  nvidiaPro6000:
+    "https://www.nvidia.com/en-us/products/workstations/rtx-pro-6000-blackwell-workstation-edition/",
 } as const;
 
-/** Measured 8 × RTX 5090 full load, DeepSeek-V4-Flash. Working hour is the 10:1 mix (16.3 M in + 1.63 M out), not tok/s × 3600. */
+/** Measured 8 × RTX 5090, DeepSeek-V4-Flash-DSpark (284B MoE / 13B active, FP4+FP8), TP=8, 30 Jul 2026. Working hour is the 10:1 mix (16.3 M in + 1.63 M out), not tok/s × 3600. Flash does not fit on one 32 GB card. */
 export const FLASH_LOAD = {
   gpus: 8,
   inTokPerSec: 6_500,
@@ -131,6 +142,14 @@ export const FLASH_LOAD = {
   openrouterOutPerM: 0.28,
   usdPerHour8: 2.74,
   usdPerGpuHr: 0.3425,
+} as const;
+
+/** Listed OpenRouter meters for the Pro 6000 96 GB token check. No matching tok/s bench yet. */
+export const LLAMA70_CHECK = {
+  model: "Llama 3.3 70B Instruct",
+  precision: "FP8",
+  openrouterInPerM: 0.1,
+  openrouterOutPerM: 0.32,
 } as const;
 
 export const TOKEN_BILLING = [
@@ -151,17 +170,19 @@ export const TOKEN_BILLING = [
 export const UNIT_COMPARE = [
   {
     sku: "RTX 5090",
+    model: "DeepSeek-V4-Flash · 8× TP=8",
     gpuRent: "$0.60",
     gpuRentWho: "On-demand avg",
     tokenHr: "$0.3425",
-    tokenHrWho: "derived · full load",
+    tokenHrWho: "measured · 30 Jul 2026",
   },
   {
     sku: "RTX Pro 6000",
+    model: "Llama 3.3 70B FP8 · 1×",
     gpuRent: "$1.69",
     gpuRentWho: "RunPod Community",
     tokenHr: "—",
-    tokenHrWho: "No matching bench",
+    tokenHrWho: "placeholder",
   },
 ] as const;
 
@@ -173,41 +194,7 @@ export const PRICE_LEVELS = [
   { m: "Aug 2026", sku5090: 0.54, pro6000: 2.19 },
 ] as const;
 
-export const USE_CASES_COMPARE = [
-  {
-    job: "Inference",
-    sku5090: "7–13B FP16 · Good",
-    pro6000: "20–35B FP16 · 70B Q · Good",
-  },
-  {
-    job: "Agents / coding",
-    sku5090: "32B quantized · OK · 32 GB KV",
-    pro6000: "70B · long context · Good",
-  },
-  {
-    job: "Media / VFX",
-    sku5090: "SD / Flux · Good until >32 GB",
-    pro6000: "Dense scenes · 96 GB · Good",
-  },
-  {
-    job: "CAD / design",
-    sku5090: "Poor · GeForce drivers",
-    pro6000: "Intended · ISV / vWS",
-  },
-  {
-    job: "Research / fine-tune",
-    sku5090: "LoRA small–mid · Good",
-    pro6000: "70B QLoRA · Good · no NVLink",
-  },
-] as const;
-
-/** Cloud rental listings, getdeploying, 15 Aug 2026. Supply, not demand. */
-export const LISTING_SHARE = [
-  { key: "sku5090", name: "RTX 5090", value: 104, fill: "var(--chart-2)" },
-  { key: "pro6000", name: "Pro 6000", value: 207, fill: "var(--chart-1)" },
-] as const;
-
-/** Cloud GPU instance $ mix, 2025. Dataintelo. Not SKU-specific. */
+/** Cloud GPU instance $ mix, 2025. Dataintelo. Not SKU-specific. Job table uses the same keys. */
 export const CLOUD_APP_SHARE = [
   { key: "ai", name: "AI", value: 38.5, fill: "var(--chart-1)" },
   { key: "analytics", name: "Analytics", value: 14.2, fill: "var(--chart-2)" },
@@ -215,4 +202,76 @@ export const CLOUD_APP_SHARE = [
   { key: "science", name: "Scientific", value: 11.4, fill: "var(--chart-4)" },
   { key: "gaming", name: "Gaming", value: 10.3, fill: "var(--chart-5)" },
   { key: "other", name: "Other", value: 12.8, fill: "var(--muted-foreground)" },
+] as const;
+
+export type AppShareKey = (typeof CLOUD_APP_SHARE)[number]["key"];
+
+/** Same categories as CLOUD_APP_SHARE. What fits on 32 GB vs 96 GB. No Good/Poor. */
+export const USE_CASES_COMPARE = [
+  {
+    key: "ai",
+    job: "Local LLM · chat",
+    means: "Short Q&A with a small assistant. Both cards keep up.",
+    sku5090:
+      "7–13B FP16 or 32B Q4. Same tok/s as Pro 6000 while weights + short KV fit in 32 GB.",
+    pro6000: "Same models. Extra VRAM unused unless batch or context grows.",
+  },
+  {
+    key: "ai",
+    job: "Local LLM · 70B",
+    means: "A 70B-class model on one card. Weight size, not document length.",
+    sku5090: "70B Q8 (~75 GB weights) spills to system RAM.",
+    pro6000: "70B Q4 or FP8 on one card.",
+  },
+  {
+    key: "ai",
+    job: "Fine-tune",
+    means: "Teaching the model on your data.",
+    sku5090: "7–13B LoRA / QLoRA. 30B FP16 + grads OOM.",
+    pro6000: "30B LoRA FP16; 70B QLoRA. No NVLink — not 70B FP16 train.",
+  },
+  {
+    key: "analytics",
+    job: "Long context / RAG",
+    means: "One long document or codebase in a sitting. Leftover VRAM after weights is the KV cache.",
+    sku5090: "13B FP16 at 8K+ KV fills the leftover GB.",
+    pro6000: "~56–82 GB left for KV. 32k-token code/doc jobs stay in VRAM.",
+  },
+  {
+    key: "render",
+    job: "Image gen",
+    means: "Pictures from text. Same speed on both; extra memory holds more style packs at once.",
+    sku5090: "SDXL; Flux.1 Dev BF16 (~26 GB). Same img/min as Pro 6000.",
+    pro6000: "Same img/min. 96 GB holds base + ControlNet + LoRA stack without reload.",
+  },
+  {
+    key: "science",
+    job: "CAD / MCAD",
+    means: "Mechanical parts and assemblies (SOLIDWORKS, Creo) — not game/film lookdev.",
+    sku5090: "No ISV cert. SOLIDWORKS OpenGL transparency (OIT) drops on GeForce drivers.",
+    pro6000:
+      "SOLIDWORKS, Creo, energy/medical viz — ISV/vWS, hardware OIT. Assemblies that exceed 32 GB.",
+  },
+  {
+    key: "gaming",
+    job: "Lookdev / Unreal",
+    means: "Game or film viewport. Fine on 5090 until the scene itself is huge.",
+    sku5090: "Maya / Unreal viewport (Lumen, Nanite) while the scene stays under 32 GB.",
+    pro6000: "Same apps when the scene, textures, or sim cache exceeds 32 GB.",
+  },
+  {
+    key: "other",
+    job: "Video · 1080 / 4K / 8K",
+    means: "Cutting and exporting video. 1080 and 4K are easy on both; 8K and stacked effects need more memory.",
+    sku5090:
+      "1080 (~8 GB) and 4K (~12 GB) timelines. 6K/8K + NR/Magic Mask in 32 GB. 3× NVENC, 2× NVDEC.",
+    pro6000:
+      "Same 1080/4K encode. 4× NVENC / 4× NVDEC for multi-stream. 96 GB for 8K + Fusion/color stack without swapping.",
+  },
+] as const;
+
+/** Cloud rental listings, getdeploying, 15 Aug 2026. Supply, not demand. */
+export const LISTING_SHARE = [
+  { key: "sku5090", name: "RTX 5090", value: 104, fill: "var(--chart-2)" },
+  { key: "pro6000", name: "Pro 6000", value: 207, fill: "var(--chart-1)" },
 ] as const;

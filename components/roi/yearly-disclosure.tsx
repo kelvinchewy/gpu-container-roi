@@ -141,7 +141,7 @@ export function YearlyDisclosure({ result }: { result: SkuResult }) {
                   </TableRow>
                 ))}
               </TableBody>
-              <TableCaption className="mt-3 text-left text-xs">
+              <TableCaption className="mt-3 text-left text-xs text-muted-foreground">
                 $000. ( ) = negative. Hover a header for the definition.
               </TableCaption>
             </Table>

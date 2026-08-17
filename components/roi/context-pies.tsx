@@ -61,7 +61,7 @@ function SharePie({
               formatter={(value, name) => (
                 <div className="flex w-full items-center justify-between gap-4">
                   <span>{String(name)}</span>
-                  <span className="font-mono">
+                  <span className="font-mono tabular-nums">
                     {valueKind === "percent" ? `${String(value)}%` : String(value)}
                   </span>
                 </div>
@@ -113,7 +113,7 @@ export function ContextPies() {
             Dataintelo, Cloud GPU Instance Market
           </a>
           {" · "}
-          2025 application $ mix · not SKU-specific
+          2025 application $ mix · same categories as the job table
         </p>
       </div>
     </div>

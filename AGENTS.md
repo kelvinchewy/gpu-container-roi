@@ -16,6 +16,7 @@ This is the project contract. Cursor loads this file the way Claude Code loads `
 - **Access:** internal, no auth. Do not submit the Vercel URL to public directories.
 - **Language v1: English only.** US PM English. Labels match Excel English (`Server price`, `Utilization`, `Payback`, `NPV`). No Chinese sublabels. A language switch or `/zh` is later.
 - **UI:** one page, four tabs. Stock shadcn. No custom CSS campaign. No Dashboard/Brief/Story/Lab names.
+- **Notion twin:** [GPU Container ROI](https://app.notion.com/p/hashing/5090-6000-3be1a6d49e8f801d9d11ed4b65ac29cc) is a readable twin for people and other agents. **This file wins if they disagree.**
 
 ---
 
@@ -106,9 +107,9 @@ Do not put the other SKU on these tabs.
 Independent listed comps. Tables and a bullet exclusion list. No paragraphs. Do **not** show Excel defaults, NPV, or IRR here. GPU-hour chart caption may cite Reset rents vs electricity as a check. Do **not** feed these `$` into `runModel` unless the user explicitly asks.
 
 1. Sold as — two-row unit table (bare metal `/GPU-hr` vs tokens `/M tok`)
-2. Best for — one side-by-side job table (5090 | Pro 6000), paired with listing pie and cloud GPU $ mix pie (cite getdeploying + Dataintelo)
+2. Best for — pies first (cite getdeploying + Dataintelo), then one job table: Dataintelo category (same keys/colors as the $ mix pie) · Job · What it means · 5090 32 GB · Pro 6000 96 GB. No Good/Poor. Cite Spheron / Dell / Mercatus / Puget.
 3. What the market pays — EcoHash vs listed GPU-hour (venue under each $); two listed $/GPU-hr charts (5090 | Pro 6000), each with own scale; dotted forecast (last print held) at Aug 2027 and Aug 2029; Pro 6000 straight line spans May/Jul gap; OpEx break-even on the 5090 chart. Does not feed `runModel`.
-4. How DeepSeek-V4-Flash bills — input vs output (OpenRouter $0.14/$0.28 · EcoHash $0.16/$0.33). Same unit · $/GPU-hr: two SKU rows. 5090 token/hr from measured 8×5090 full load (6,500 in / 1,500 out tok/s, agentic 10:1, $2.74/8 = $0.34). Pro 6000 token = —. Check only.
+4. How DeepSeek-V4-Flash bills — input vs output (OpenRouter $0.14/$0.28 · EcoHash $0.16/$0.33). Same unit · $/GPU-hr: two rows. 5090 = Flash 8× TP=8 measured ($0.34). Pro 6000 = Llama 3.3 70B FP8 1×; token/hr = placeholder. Check only. Does not feed `runModel`.
 5. Exclusion list (bullets): no util ramp; no freight/customs/install; no EcoHash fee; Y1 = full year at stated util; unlevered; residual = servers only
 6. Links row: ecohash.com · ecohash.com/pricing · colocation.ecohash.com · getdeploying · Dataintelo
 

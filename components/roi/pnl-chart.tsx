@@ -50,7 +50,7 @@ export function PnlChart({ result }: { result: SkuResult }) {
           <YAxis
             tickLine={false}
             axisLine={false}
-            className="font-mono"
+            className="font-mono tabular-nums"
             tickFormatter={(v) => usdK(Number(v))}
             width={72}
           />
@@ -68,7 +68,7 @@ export function PnlChart({ result }: { result: SkuResult }) {
           <YAxis
             tickLine={false}
             axisLine={false}
-            className="font-mono"
+            className="font-mono tabular-nums"
             tickFormatter={(v) => usdK(Number(v))}
             width={72}
           />

@@ -88,29 +88,29 @@ export function RoiApp() {
             ) : null}
           </div>
           <TabsList
-            className="h-11 w-full min-w-0 overflow-x-auto rounded-lg border bg-primary/10"
+            className="h-auto w-full min-w-0 justify-start gap-px overflow-x-auto rounded-none bg-muted p-0 pt-1 group-data-horizontal/tabs:h-auto"
             aria-label="Section"
           >
             <TabsTrigger
-              className="px-3 text-sm data-active:bg-primary data-active:text-primary-foreground data-active:shadow-sm"
+              className="h-8 flex-none rounded-none rounded-t-md border border-transparent bg-primary/10 px-3.5 text-sm hover:bg-primary/15 data-active:border-border data-active:border-b-transparent data-active:bg-background data-active:text-foreground data-active:shadow-[inset_0_2px_0_0_var(--primary)]"
               value="5090"
             >
               RTX 5090
             </TabsTrigger>
             <TabsTrigger
-              className="px-3 text-sm data-active:bg-primary data-active:text-primary-foreground data-active:shadow-sm"
+              className="h-8 flex-none rounded-none rounded-t-md border border-transparent bg-primary/10 px-3.5 text-sm hover:bg-primary/15 data-active:border-border data-active:border-b-transparent data-active:bg-background data-active:text-foreground data-active:shadow-[inset_0_2px_0_0_var(--primary)]"
               value="pro6000"
             >
               Pro 6000
             </TabsTrigger>
             <TabsTrigger
-              className="px-3 text-sm data-active:bg-primary data-active:text-primary-foreground data-active:shadow-sm"
+              className="h-8 flex-none rounded-none rounded-t-md border border-transparent bg-primary/10 px-3.5 text-sm hover:bg-primary/15 data-active:border-border data-active:border-b-transparent data-active:bg-background data-active:text-foreground data-active:shadow-[inset_0_2px_0_0_var(--primary)]"
               value="compare"
             >
               Compare
             </TabsTrigger>
             <TabsTrigger
-              className="px-3 text-sm data-active:bg-primary data-active:text-primary-foreground data-active:shadow-sm"
+              className="h-8 flex-none rounded-none rounded-t-md border border-transparent bg-primary/10 px-3.5 text-sm hover:bg-primary/15 data-active:border-border data-active:border-b-transparent data-active:bg-background data-active:text-foreground data-active:shadow-[inset_0_2px_0_0_var(--primary)]"
               value="research"
             >
               Research

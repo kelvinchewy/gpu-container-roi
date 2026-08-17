@@ -2,7 +2,7 @@
 
 Underwriting tool for a containerized AI data center.
 
-**Read [AGENTS.md](AGENTS.md) first.** That file is the contract.
+**Read [AGENTS.md](AGENTS.md) first.** That file is the contract. Readable twin: [Notion GPU Container ROI](https://app.notion.com/p/hashing/5090-6000-3be1a6d49e8f801d9d11ed4b65ac29cc). Git wins if they disagree.
 
 Four tabs: **RTX 5090** · **Pro 6000** · **Compare** · **Research**.
 

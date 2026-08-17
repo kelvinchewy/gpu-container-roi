@@ -52,7 +52,7 @@ function SkuPriceChart({
           dataKey="m"
           tickLine={false}
           axisLine={false}
-          className="font-mono"
+          className="font-mono tabular-nums"
           minTickGap={8}
           interval="equidistantPreserveStart"
         />
@@ -60,7 +60,7 @@ function SkuPriceChart({
           type="number"
           tickLine={false}
           axisLine={false}
-          className="font-mono"
+          className="font-mono tabular-nums"
           tickFormatter={(v) => `$${Number(v).toFixed(2)}`}
           width={48}
           domain={domain}
@@ -75,7 +75,7 @@ function SkuPriceChart({
                 value == null ? null : (
                   <div className="flex w-full items-center justify-between gap-4">
                     <span>{String(name)}</span>
-                    <span className="font-mono">${Number(value).toFixed(2)}</span>
+                    <span className="font-mono tabular-nums">${Number(value).toFixed(2)}</span>
                   </div>
                 )
               }
