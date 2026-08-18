@@ -17,11 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { usd } from "@/lib/roi/format";
-import {
-  ELEC_PER_GPU_HR_TDP,
-  OPEX_BREAK_EVEN_PER_GPU_HR,
-  SUGGESTED_RENT,
-} from "@/lib/roi/listed-forecast";
+import { OPEX_PER_GPU_HR } from "@/lib/roi/listed-forecast";
 import {
   CITE,
   CLOUD_APP_SHARE,
@@ -209,18 +205,16 @@ export function ContextTab() {
               <a className="underline underline-offset-4" href={CITE.packet5090}>
                 Packet.ai
               </a>
-              ). Dotted forecast = last print held to Aug 2027 and Aug 2029. Dashed line = OpEx
-              break-even {usd(OPEX_BREAK_EVEN_PER_GPU_HR, 2)}/GPU-hr. Electricity ~
-              {usd(ELEC_PER_GPU_HR_TDP, 2)} (PUE 1.3 · $0.06/kWh · 575 W) vs suggested{" "}
-              {usd(SUGGESTED_RENT.sku5090, 2)}.
+              ). Dashed = OpEx {usd(OPEX_PER_GPU_HR.sku5090, 2)}/GPU-hr (PUE 1.3 · $0.06/kWh · 6.8
+              kW IT).
             </p>
             <p>
               Pro 6000 · listed Aug 2025 and Aug 2026 (
               <a className="underline underline-offset-4" href={CITE.listingPro6000}>
                 getdeploying
               </a>
-              ). No May/Jul print; straight line spans the gap. Dotted forecast = last print held
-              to Aug 2027 and Aug 2029. Suggested {usd(SUGGESTED_RENT.pro6000, 2)}.
+              ). No May/Jul print; line spans the gap. Dashed = OpEx{" "}
+              {usd(OPEX_PER_GPU_HR.pro6000, 2)}/GPU-hr (PUE 1.3 · $0.06/kWh · 6.3 kW IT).
             </p>
           </div>
         </CardContent>

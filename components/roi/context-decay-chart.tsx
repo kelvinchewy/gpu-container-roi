@@ -1,6 +1,6 @@
 "use client";
 
-import { CartesianGrid, Line, LineChart, ReferenceLine, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 import {
   ChartContainer,
@@ -10,10 +10,10 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { OPEX_BREAK_EVEN_PER_GPU_HR, PRICE_CHART } from "@/lib/roi/listed-forecast";
+import { PRICE_CHART } from "@/lib/roi/listed-forecast";
 
-function yDomain(values: (number | null)[], extras: number[] = []): [number, number] {
-  const nums = [...values.filter((v): v is number => v != null), ...extras];
+function yDomain(values: (number | null)[]): [number, number] {
+  const nums = values.filter((v): v is number => v != null);
   if (nums.length === 0) return [0, 1];
   const min = Math.min(...nums);
   const max = Math.max(...nums);
@@ -23,26 +23,21 @@ function yDomain(values: (number | null)[], extras: number[] = []): [number, num
 
 function SkuPriceChart({
   listedKey,
-  forecastKey,
+  opexKey,
   listedColor,
-  opexBe,
   connectGaps,
 }: {
   listedKey: "sku5090" | "pro6000";
-  forecastKey: "sku5090Forecast" | "pro6000Forecast";
+  opexKey: "opex5090" | "opexPro6000";
   listedColor: string;
-  opexBe: number | null;
   connectGaps: boolean;
 }) {
   const config = {
-    [listedKey]: { label: listedKey === "sku5090" ? "RTX 5090" : "Pro 6000", color: listedColor },
-    [forecastKey]: { label: "Forecast", color: "var(--chart-forecast)" },
+    [listedKey]: { label: "Listed", color: listedColor },
+    [opexKey]: { label: "OpEx", color: "var(--muted-foreground)" },
   } satisfies ChartConfig;
 
-  const domain = yDomain(
-    PRICE_CHART.flatMap((row) => [row[listedKey], row[forecastKey]]),
-    opexBe == null ? [] : [opexBe],
-  );
+  const domain = yDomain(PRICE_CHART.flatMap((row) => [row[listedKey], row[opexKey]]));
 
   return (
     <ChartContainer config={config} className="aspect-[16/8] min-h-[220px] w-full">
@@ -65,9 +60,6 @@ function SkuPriceChart({
           width={48}
           domain={domain}
         />
-        {opexBe != null ? (
-          <ReferenceLine y={opexBe} stroke="var(--muted-foreground)" strokeDasharray="3 3" />
-        ) : null}
         <ChartTooltip
           content={
             <ChartTooltipContent
@@ -93,11 +85,11 @@ function SkuPriceChart({
         />
         <Line
           type="linear"
-          dataKey={forecastKey}
-          stroke={`var(--color-${forecastKey})`}
+          dataKey={opexKey}
+          stroke={`var(--color-${opexKey})`}
           strokeWidth={2}
-          strokeDasharray="4 4"
-          dot
+          strokeDasharray="3 3"
+          dot={false}
           connectNulls
         />
       </LineChart>
@@ -110,16 +102,14 @@ export function ContextDecayChart() {
     <div className="grid gap-6 md:grid-cols-2">
       <SkuPriceChart
         listedKey="sku5090"
-        forecastKey="sku5090Forecast"
+        opexKey="opex5090"
         listedColor="var(--chart-2)"
-        opexBe={OPEX_BREAK_EVEN_PER_GPU_HR}
         connectGaps={false}
       />
       <SkuPriceChart
         listedKey="pro6000"
-        forecastKey="pro6000Forecast"
+        opexKey="opexPro6000"
         listedColor="var(--chart-1)"
-        opexBe={null}
         connectGaps
       />
     </div>

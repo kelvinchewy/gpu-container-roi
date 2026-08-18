@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_INPUTS, EXCEL_ELEC_PER_KWH, EXCEL_RENT } from "./defaults";
 import { runModel } from "./engine";
 import { chartCaption, usdK, usdParenK } from "./format";
+import { OPEX_PER_GPU_HR, PRICE_CHART } from "./listed-forecast";
 import { clampInputs } from "./url";
 import type { ModelInputs } from "./types";
 
@@ -104,5 +105,20 @@ describe("ScenA golden values", () => {
     expect(sku5090.moic).toBeCloseTo((997_309 * 5 + 308_700) / 3_687_000, 4);
     expect(sku5090.totalRoi).toBeCloseTo(sku5090.moic - 1, 6);
     expect(sku5090.capexPerGpu).toBeCloseTo(3_687_000 / 280, 4);
+  });
+});
+
+describe("Research listed GPU-hour chart", () => {
+  it("has no forecast hold and pins Reset OpEx per GPU-hr", () => {
+    expect(PRICE_CHART.map((row) => row.m)).toEqual([
+      "Aug 2025",
+      "May 2026",
+      "Jul 2026",
+      "Aug 2026",
+    ]);
+    expect(OPEX_PER_GPU_HR.sku5090).toBeCloseTo(0.1371, 4);
+    expect(OPEX_PER_GPU_HR.pro6000).toBeCloseTo(0.191, 4);
+    expect(PRICE_CHART[0]?.opex5090).toBe(OPEX_PER_GPU_HR.sku5090);
+    expect(PRICE_CHART[0]?.opexPro6000).toBe(OPEX_PER_GPU_HR.pro6000);
   });
 });
