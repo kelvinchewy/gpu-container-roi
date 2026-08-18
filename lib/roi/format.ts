@@ -1,5 +1,5 @@
 import { combinedTax } from "./finance";
-import type { ModelInputs } from "./types";
+import type { ModelInputs, SkuId } from "./types";
 
 export function usd(value: number, digits = 0): string {
   return new Intl.NumberFormat("en-US", {
@@ -51,7 +51,21 @@ export function kwh(value: number): string {
   return `$${value.toFixed(4)}/kWh`;
 }
 
-export function extrasSummary(inputs: ModelInputs): string {
+export function extrasSummary(inputs: ModelInputs, skuId?: SkuId): string {
+  if (skuId === "gb300") {
+    const f = inputs.gb300Facility;
+    const site = f.siteName.trim() || "Atlanta, GA";
+    const tax = combinedTax(f.federalTax, f.stateTax);
+    const racks = inputs.skuGb300.rackCount ?? 24;
+    return [
+      site,
+      `tax ${pct(tax, 1)}`,
+      `${racks} racks`,
+      `${f.hallCount} hall${f.hallCount === 1 ? "" : "s"}`,
+      `PUE ${f.pue.toFixed(2)}`,
+      `OBBBA ${f.obbbaEnabled ? "on" : "off"}`,
+    ].join(" · ");
+  }
   const site = inputs.siteName.trim() || "Atlanta, GA";
   const tax = combinedTax(inputs.federalTax, inputs.stateTax);
   return [
@@ -63,6 +77,16 @@ export function extrasSummary(inputs: ModelInputs): string {
   ].join(" · ");
 }
 
-export function chartCaption(inputs: ModelInputs, sku: string): string {
-  return `${sku} · ${extrasSummary(inputs)} · decay ${inputs.priceErosionOn ? "on" : "off"}`;
+export function chartCaption(inputs: ModelInputs, sku: string, skuId?: SkuId): string {
+  const decay = `decay ${inputs.priceErosionOn ? "on" : "off"}`;
+  if (skuId === "gb300") {
+    return [
+      sku,
+      "NVL72",
+      "Blackwell Ultra",
+      extrasSummary(inputs, "gb300"),
+      decay,
+    ].join(" · ");
+  }
+  return `${sku} · ${extrasSummary(inputs)} · ${decay}`;
 }

@@ -122,3 +122,84 @@ describe("Research listed GPU-hour chart", () => {
     expect(PRICE_CHART[0]?.opexPro6000).toBe(OPEX_PER_GPU_HR.pro6000);
   });
 });
+
+describe("GB300 NVL72", () => {
+  it("is 24 racks × 72 GPUs and does not change 5090 / Pro 6000 topology", () => {
+    const { sku5090, skuPro6000, skuGb300 } = runModel();
+
+    expect(sku5090.totalGpus).toBe(280);
+    expect(skuPro6000.totalGpus).toBe(280);
+
+    expect(skuGb300.totalServers).toBe(24);
+    expect(skuGb300.totalGpus).toBe(1_728);
+    expect(skuGb300.serverCapex).toBe(96_000_000);
+    expect(skuGb300.totalCapex).toBe(96_600_000);
+    expect(skuGb300.itLoadTotalKw).toBe(3_360);
+    expect(skuGb300.residualCash).toBe(9_600_000);
+    expect(skuGb300.irr).not.toBeNull();
+    expect(Number.isFinite(skuGb300.npv)).toBe(true);
+    expect(skuGb300.cashFlows[1]).toBeGreaterThan(0);
+  });
+
+  it("caption is NVL72 racks, not 35×8, and uses GB300 facility", () => {
+    const caption = chartCaption(DEFAULT_INPUTS, "GB300", "gb300");
+    expect(caption).toContain("NVL72");
+    expect(caption).toContain("Blackwell Ultra");
+    expect(caption).toContain("24 racks");
+    expect(caption).toContain("1 hall");
+    expect(caption).not.toContain("1×35 servers");
+  });
+
+  it("does not fall back to 35×8 if rack fields are omitted", () => {
+    const { skuGb300 } = runModel({
+      ...DEFAULT_INPUTS,
+      skuGb300: {
+        ...DEFAULT_INPUTS.skuGb300,
+        rackCount: undefined,
+        gpusPerServer: undefined,
+      },
+    });
+    expect(skuGb300.totalServers).toBe(24);
+    expect(skuGb300.totalGpus).toBe(1_728);
+  });
+
+  it("does not share site, tax, topology, or power with 5090 / Pro 6000", () => {
+    const base = runModel();
+    const air = runModel({
+      ...DEFAULT_INPUTS,
+      federalTax: 0.35,
+      elecPerKwh: 0.2,
+      containerCount: 5,
+      pue: 1.5,
+      obbbaEnabled: false,
+    });
+    expect(air.sku5090.combinedTax).not.toBeCloseTo(base.sku5090.combinedTax, 6);
+    expect(air.sku5090.totalGpus).toBe(1_400);
+    expect(air.skuGb300.combinedTax).toBeCloseTo(base.skuGb300.combinedTax, 6);
+    expect(air.skuGb300.totalGpus).toBe(1_728);
+    expect(air.skuGb300.totalCapex).toBe(96_600_000);
+    expect(air.skuGb300.effectiveKwh).toBeCloseTo(base.skuGb300.effectiveKwh, 6);
+
+    const hallInputs = {
+      ...DEFAULT_INPUTS,
+      gb300Facility: {
+        ...DEFAULT_INPUTS.gb300Facility,
+        federalTax: 0.35,
+        elecPerKwh: 0.2,
+        hallCount: 2,
+        pue: 1.5,
+        obbbaEnabled: false,
+        siteName: "Dallas, TX",
+      },
+    };
+    const hall = runModel(hallInputs);
+    expect(hall.sku5090.combinedTax).toBeCloseTo(base.sku5090.combinedTax, 6);
+    expect(hall.sku5090.totalCapex).toBe(3_687_000);
+    expect(hall.sku5090.effectiveKwh).toBeCloseTo(base.sku5090.effectiveKwh, 6);
+    expect(hall.skuGb300.combinedTax).not.toBeCloseTo(base.skuGb300.combinedTax, 6);
+    expect(hall.skuGb300.infraCapex).toBe(1_200_000);
+    expect(hall.skuGb300.totalGpus).toBe(1_728);
+    expect(chartCaption(hallInputs, "GB300", "gb300")).toContain("Dallas, TX");
+    expect(chartCaption(hallInputs, "RTX 5090")).toContain("Atlanta, GA");
+  });
+});

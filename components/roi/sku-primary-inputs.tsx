@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { BOUNDS } from "@/lib/roi/defaults";
 import { usd } from "@/lib/roi/format";
-import { bomSum } from "@/lib/roi/sources";
+import { bomSum, syncBomToPrice } from "@/lib/roi/sources";
 import type { SkuId, SkuInputs } from "@/lib/roi/types";
 
 import { Field, NumberInput, PercentInput, useFieldId } from "./fields";
@@ -38,34 +38,53 @@ export function SkuPrimaryInputs({
 }) {
   const [bomOpen, setBomOpen] = useState(false);
   const [rentOpen, setRentOpen] = useState(false);
+  const isRack = skuId === "gb300";
 
   return (
-    <div className="grid gap-4 sm:grid-cols-3">
-      <Field
-        emphasis
-        label="Server price"
-        extra={
-          <Button type="button" variant="outline" size="xs" onClick={() => setBomOpen(true)}>
-            Edit BOM
-          </Button>
-        }
-      >
-        <ServerPriceButton price={sku.serverPrice} onOpen={() => setBomOpen(true)} />
-        <ServerBomDialog
-          skuId={skuId}
-          lines={sku.bom}
-          open={bomOpen}
-          onOpenChange={setBomOpen}
-          onSave={(bom) => onChange({ bom, serverPrice: bomSum(bom) })}
-        />
-      </Field>
+    <div className={isRack ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-4" : "grid gap-4 sm:grid-cols-3"}>
+      {isRack ? (
+        <Field emphasis label="Rack price">
+          <NumberInput
+            value={sku.serverPrice}
+            min={0.01}
+            step={1000}
+            onChange={(serverPrice) =>
+              onChange({
+                serverPrice,
+                bom: syncBomToPrice(sku.bom, serverPrice),
+              })
+            }
+          />
+        </Field>
+      ) : (
+        <Field
+          emphasis
+          label="Server price"
+          extra={
+            <Button type="button" variant="outline" size="xs" onClick={() => setBomOpen(true)}>
+              Edit BOM
+            </Button>
+          }
+        >
+          <ServerPriceButton price={sku.serverPrice} onOpen={() => setBomOpen(true)} />
+          <ServerBomDialog
+            skuId={skuId}
+            lines={sku.bom}
+            open={bomOpen}
+            onOpenChange={setBomOpen}
+            onSave={(bom) => onChange({ bom, serverPrice: bomSum(bom) })}
+          />
+        </Field>
+      )}
       <Field
         emphasis
         label="GPU rent ($/GPU-hr)"
         extra={
-          <Button type="button" variant="outline" size="xs" onClick={() => setRentOpen(true)}>
-            Source
-          </Button>
+          isRack ? null : (
+            <Button type="button" variant="outline" size="xs" onClick={() => setRentOpen(true)}>
+              Source
+            </Button>
+          )
         }
       >
         <NumberInput
@@ -75,12 +94,14 @@ export function SkuPrimaryInputs({
           step={0.01}
           onChange={(gpuRentPerHr) => onChange({ gpuRentPerHr })}
         />
-        <RentSourceDialog
-          skuId={skuId}
-          modelRent={sku.gpuRentPerHr}
-          open={rentOpen}
-          onOpenChange={setRentOpen}
-        />
+        {skuId === "gb300" ? null : (
+          <RentSourceDialog
+            skuId={skuId}
+            modelRent={sku.gpuRentPerHr}
+            open={rentOpen}
+            onOpenChange={setRentOpen}
+          />
+        )}
       </Field>
       <Field emphasis label="Utilization (%)">
         <PercentInput
@@ -91,6 +112,17 @@ export function SkuPrimaryInputs({
           onChange={(utilization) => onChange({ utilization })}
         />
       </Field>
+      {isRack ? (
+        <Field emphasis label="Racks">
+          <NumberInput
+            value={sku.rackCount ?? 24}
+            min={BOUNDS.rackCount.min}
+            max={BOUNDS.rackCount.max}
+            step={1}
+            onChange={(rackCount) => onChange({ rackCount })}
+          />
+        </Field>
+      ) : null}
     </div>
   );
 }

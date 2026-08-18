@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { SKU_LABEL } from "@/lib/roi/defaults";
 import { chartCaption } from "@/lib/roi/format";
 import type { ModelInputs, SkuId, SkuInputs, SkuResult } from "@/lib/roi/types";
+import { skuState } from "@/lib/roi/types";
 
 import { KpiStrip } from "./kpi-strip";
 import { PnlChart } from "./pnl-chart";
@@ -22,8 +23,8 @@ export function GpuTab({
   result: SkuResult;
   onSkuChange: (skuId: SkuId, patch: Partial<SkuInputs>) => void;
 }) {
-  const sku = skuId === "5090" ? inputs.sku5090 : inputs.skuPro6000;
-  const caption = chartCaption(inputs, result.skuLabel);
+  const sku = skuState(inputs, skuId);
+  const caption = chartCaption(inputs, result.skuLabel, skuId);
 
   return (
     <div className="grid gap-6">
@@ -31,7 +32,9 @@ export function GpuTab({
         <CardHeader>
           <CardTitle>{SKU_LABEL[skuId]}</CardTitle>
           <CardDescription>
-            Server price, GPU rent, and utilization. Edits this SKU only.
+            {skuId === "gb300"
+              ? "Rack price, GPU rent, utilization, and rack count. Edits this SKU only."
+              : "Server price, GPU rent, and utilization. Edits this SKU only."}
           </CardDescription>
         </CardHeader>
         <CardContent>

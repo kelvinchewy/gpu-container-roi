@@ -149,7 +149,7 @@ export function RentSourceDialog({
   open,
   onOpenChange,
 }: {
-  skuId: SkuId;
+  skuId: Exclude<SkuId, "gb300">;
   modelRent: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;

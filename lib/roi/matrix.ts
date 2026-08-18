@@ -1,11 +1,12 @@
 import { MATRIX_DECAY, MATRIX_UTILS } from "./defaults";
 import { runSkuModel } from "./engine";
 import type { ModelInputs, SkuId } from "./types";
+import { SKU_STATE_KEY } from "./types";
 
 export function breakevenMatrix(inputs: ModelInputs, skuId: SkuId): (number | null)[][] {
   return MATRIX_DECAY.map((decay) =>
     MATRIX_UTILS.map((utilization) => {
-      const skuKey = skuId === "5090" ? "sku5090" : "skuPro6000";
+      const skuKey = SKU_STATE_KEY[skuId];
       const next: ModelInputs = {
         ...inputs,
         priceErosionOn: decay > 0,

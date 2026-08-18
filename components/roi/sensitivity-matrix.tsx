@@ -6,6 +6,7 @@ import { MATRIX_DECAY, MATRIX_UTILS } from "@/lib/roi/defaults";
 import { monthLabel } from "@/lib/roi/format";
 import { breakevenMatrix, nearestIndex } from "@/lib/roi/matrix";
 import type { ModelInputs, SkuId } from "@/lib/roi/types";
+import { skuState } from "@/lib/roi/types";
 import { cn } from "@/lib/utils";
 
 function cellTint(month: number | null, min: number, max: number): string {
@@ -35,7 +36,7 @@ export function SensitivityMatrix({
   const min = months.length ? Math.min(...months) : 0;
   const max = months.length ? Math.max(...months) : 1;
 
-  const sku = skuId === "5090" ? deferredInputs.sku5090 : deferredInputs.skuPro6000;
+  const sku = skuState(deferredInputs, skuId);
   const utilIndex = nearestIndex(MATRIX_UTILS, sku.utilization);
   const decayTarget = deferredInputs.priceErosionOn ? deferredInputs.priceErosionRate : 0;
   const decayIndex = nearestIndex(MATRIX_DECAY, decayTarget);

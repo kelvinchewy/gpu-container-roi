@@ -41,6 +41,7 @@ export const DEFAULT_BOM: Record<SkuId, BomLine[]> = {
     { key: "cables", item: "Cables, fans, other", qty: 1, unitPrice: 4_000 },
     { key: "other", item: "Other", qty: 1, unitPrice: 45_800 },
   ],
+  gb300: [{ key: "rack", item: "GB300 NVL72 rack", qty: 1, unitPrice: 4_000_000 }],
 };
 
 export type RentComp = {
@@ -64,7 +65,7 @@ export const ECOHASH_LIST = {
   gpuUrl: "https://ecohash.com/gpu/rtx-pro-6000",
 } as const;
 
-export const RENT_SOURCE: Record<SkuId, RentComp> = {
+export const RENT_SOURCE: Record<Exclude<SkuId, "gb300">, RentComp> = {
   "5090": {
     low: "$0.34/hr",
     mid: "$0.60/hr",

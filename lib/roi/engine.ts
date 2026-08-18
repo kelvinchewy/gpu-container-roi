@@ -1,44 +1,83 @@
 import { DEFAULT_INPUTS, SKU_LABEL } from "./defaults";
 import { combinedTax, irr, npv, paybackYears } from "./finance";
-import type {
-  ModelInputs,
-  ModelResult,
-  SkuId,
-  SkuInputs,
-  SkuResult,
-  YearRow,
-} from "./types";
+import type { Gb300Facility, ModelInputs, ModelResult, SkuId, SkuResult, YearRow } from "./types";
+import { skuState } from "./types";
 
-function skuInputs(inputs: ModelInputs, skuId: SkuId): SkuInputs {
-  return skuId === "5090" ? inputs.sku5090 : inputs.skuPro6000;
+function facility(inputs: ModelInputs, skuId: SkuId) {
+  if (skuId === "gb300") {
+    const f: Gb300Facility = inputs.gb300Facility;
+    return {
+      siteName: f.siteName,
+      elecPerKwh: f.elecPerKwh,
+      federalTax: f.federalTax,
+      stateTax: f.stateTax,
+      propertyTaxPctCapex: f.propertyTaxPctCapex,
+      obbbaEnabled: f.obbbaEnabled,
+      pue: f.pue,
+      hoursPerYear: f.hoursPerYear,
+      usefulLifeYrs: f.usefulLifeYrs,
+      scaleCount: f.hallCount,
+      containerCost: f.containerCost,
+      siteConstruction: f.siteConstruction,
+      networkOpexMo: f.networkOpexMo,
+      omOpexMo: f.omOpexMo,
+      insurancePctRev: f.insurancePctRev,
+      otherOpexPctRev: f.otherOpexPctRev,
+    };
+  }
+  return {
+    siteName: inputs.siteName,
+    elecPerKwh: inputs.elecPerKwh,
+    federalTax: inputs.federalTax,
+    stateTax: inputs.stateTax,
+    propertyTaxPctCapex: inputs.propertyTaxPctCapex,
+    obbbaEnabled: inputs.obbbaEnabled,
+    pue: inputs.pue,
+    hoursPerYear: inputs.hoursPerYear,
+    usefulLifeYrs: inputs.usefulLifeYrs,
+    scaleCount: inputs.containerCount,
+    containerCost: inputs.containerCost,
+    siteConstruction: inputs.siteConstruction,
+    networkOpexMo: inputs.networkOpexMo,
+    omOpexMo: inputs.omOpexMo,
+    insurancePctRev: inputs.insurancePctRev,
+    otherOpexPctRev: inputs.otherOpexPctRev,
+  };
 }
 
 function runSku(inputs: ModelInputs, skuId: SkuId): SkuResult {
-  const sku = skuInputs(inputs, skuId);
-  const n = Math.round(inputs.usefulLifeYrs);
-  const combined = combinedTax(inputs.federalTax, inputs.stateTax);
-  const totalServers = inputs.containerCount * inputs.serversPerContainer;
-  const totalGpus = totalServers * inputs.gpusPerServer;
-  const infraCapex =
-    (inputs.containerCost + inputs.siteConstruction) * inputs.containerCount;
+  const sku = skuState(inputs, skuId);
+  const f = facility(inputs, skuId);
+  const n = Math.round(f.usefulLifeYrs);
+  const combined = combinedTax(f.federalTax, f.stateTax);
+  const totalServers =
+    skuId === "gb300"
+      ? (sku.rackCount ?? DEFAULT_INPUTS.skuGb300.rackCount ?? 24)
+      : inputs.containerCount * inputs.serversPerContainer;
+  const gpusPer =
+    skuId === "gb300"
+      ? (sku.gpusPerServer ?? DEFAULT_INPUTS.skuGb300.gpusPerServer ?? 72)
+      : (sku.gpusPerServer ?? inputs.gpusPerServer);
+  const totalGpus = totalServers * gpusPer;
+  const infraCapex = (f.containerCost + f.siteConstruction) * f.scaleCount;
   const serverCapex = totalServers * sku.serverPrice;
   const totalCapex = serverCapex + infraCapex;
   const itLoadTotalKw = totalServers * sku.itLoadKw;
-  const totalPowerKw = itLoadTotalKw * inputs.pue;
-  const effectiveKwh = inputs.elecPerKwh * inputs.pue;
+  const totalPowerKw = itLoadTotalKw * f.pue;
+  const effectiveKwh = f.elecPerKwh * f.pue;
   const depreciableBasis = serverCapex * (1 - sku.residualPct);
   const residualCash = serverCapex * sku.residualPct;
   const slDep = n > 0 ? depreciableBasis / n : 0;
 
   const revenueY1 =
-    totalGpus * sku.gpuRentPerHr * inputs.hoursPerYear * sku.utilization;
+    totalGpus * sku.gpuRentPerHr * f.hoursPerYear * sku.utilization;
   const electricity =
-    totalServers * sku.itLoadKw * inputs.pue * inputs.elecPerKwh * inputs.hoursPerYear;
-  const network = inputs.networkOpexMo * 12 * inputs.containerCount;
-  const om = inputs.omOpexMo * 12 * inputs.containerCount;
-  const propertyTax = totalCapex * inputs.propertyTaxPctCapex;
-  const insuranceY1 = revenueY1 * inputs.insurancePctRev;
-  const otherY1 = revenueY1 * inputs.otherOpexPctRev;
+    totalServers * sku.itLoadKw * f.pue * f.elecPerKwh * f.hoursPerYear;
+  const network = f.networkOpexMo * 12 * f.scaleCount;
+  const om = f.omOpexMo * 12 * f.scaleCount;
+  const propertyTax = totalCapex * f.propertyTaxPctCapex;
+  const insuranceY1 = revenueY1 * f.insurancePctRev;
+  const otherY1 = revenueY1 * f.otherOpexPctRev;
   const opexY1 = electricity + network + om + insuranceY1 + propertyTax + otherY1;
 
   const years: YearRow[] = [];
@@ -55,10 +94,10 @@ function runSku(inputs: ModelInputs, skuId: SkuId): SkuResult {
     // (insurance / other stay at Y1). Same treatment for both paths.
     const insurance = inputs.priceErosionOn
       ? insuranceY1
-      : revenue * inputs.insurancePctRev;
+      : revenue * f.insurancePctRev;
     const otherOpex = inputs.priceErosionOn
       ? otherY1
-      : revenue * inputs.otherOpexPctRev;
+      : revenue * f.otherOpexPctRev;
     const totalOpex = inputs.priceErosionOn
       ? opexY1
       : electricity + network + om + insurance + propertyTax + otherOpex;
@@ -70,7 +109,7 @@ function runSku(inputs: ModelInputs, skuId: SkuId): SkuResult {
     let tax = 0;
     let ncf = 0;
 
-    if (!inputs.obbbaEnabled) {
+    if (!f.obbbaEnabled) {
       depreciation = slDep;
       ebit = ebitda - slDep;
       taxableIncome = ebit;
@@ -178,6 +217,7 @@ export function runModel(inputs: ModelInputs = DEFAULT_INPUTS): ModelResult {
   return {
     sku5090: runSku(inputs, "5090"),
     skuPro6000: runSku(inputs, "pro6000"),
+    skuGb300: runSku(inputs, "gb300"),
   };
 }
 

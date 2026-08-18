@@ -1,7 +1,14 @@
-import { BOUNDS, DEFAULT_INPUTS, DEFAULT_SKU_5090, DEFAULT_SKU_PRO6000 } from "./defaults";
+import {
+  BOUNDS,
+  DEFAULT_GB300_FACILITY,
+  DEFAULT_INPUTS,
+  DEFAULT_SKU_5090,
+  DEFAULT_SKU_GB300,
+  DEFAULT_SKU_PRO6000,
+} from "./defaults";
 import { clamp } from "./finance";
 import { cloneBom, syncBomToPrice, bomSum } from "./sources";
-import type { ModelInputs, SkuInputs, TabId } from "./types";
+import type { Gb300Facility, ModelInputs, SkuInputs, TabId } from "./types";
 import { TABS } from "./types";
 
 function clampInt(value: number, min: number, max: number): number {
@@ -14,13 +21,70 @@ function clampSku(sku: SkuInputs, fallbackIt: number): SkuInputs {
     qty: Math.max(0, line.qty),
     unitPrice: Math.max(0, line.unitPrice),
   }));
-  return {
-    serverPrice: Math.max(bomSum(bom), 0.01),
+  const next: SkuInputs = {
+    serverPrice: Math.max(bomSum(bom), sku.serverPrice, 0.01),
     bom,
     gpuRentPerHr: clamp(sku.gpuRentPerHr, BOUNDS.gpuRentPerHr.min, BOUNDS.gpuRentPerHr.max),
     utilization: clamp(sku.utilization, BOUNDS.utilization.min, BOUNDS.utilization.max),
     itLoadKw: clamp(sku.itLoadKw, BOUNDS.itLoadKw.min, BOUNDS.itLoadKw.max) || fallbackIt,
     residualPct: clamp(sku.residualPct, BOUNDS.residualPct.min, BOUNDS.residualPct.max),
+  };
+  if (sku.rackCount != null) {
+    next.rackCount = clampInt(sku.rackCount, BOUNDS.rackCount.min, BOUNDS.rackCount.max);
+  }
+  if (sku.gpusPerServer != null) {
+    next.gpusPerServer = clampInt(sku.gpusPerServer, BOUNDS.rackGpus.min, BOUNDS.rackGpus.max);
+  }
+  if (next.bom.length === 1) {
+    next.serverPrice = Math.max(next.serverPrice, 0.01);
+    next.bom = syncBomToPrice(next.bom, next.serverPrice);
+  } else {
+    next.serverPrice = Math.max(bomSum(next.bom), 0.01);
+  }
+  return next;
+}
+
+function clampGb300Sku(sku: SkuInputs): SkuInputs {
+  const next = clampSku(sku, DEFAULT_SKU_GB300.itLoadKw);
+  next.rackCount = clampInt(
+    next.rackCount ?? DEFAULT_SKU_GB300.rackCount ?? 24,
+    BOUNDS.rackCount.min,
+    BOUNDS.rackCount.max,
+  );
+  next.gpusPerServer = clampInt(
+    next.gpusPerServer ?? DEFAULT_SKU_GB300.gpusPerServer ?? 72,
+    BOUNDS.rackGpus.min,
+    BOUNDS.rackGpus.max,
+  );
+  return next;
+}
+
+function clampFacility(f: Gb300Facility): Gb300Facility {
+  return {
+    siteName: f.siteName.trim().slice(0, 80),
+    elecPerKwh: clamp(f.elecPerKwh, BOUNDS.elecPerKwh.min, BOUNDS.elecPerKwh.max),
+    federalTax: clamp(f.federalTax, BOUNDS.federalTax.min, BOUNDS.federalTax.max),
+    stateTax: clamp(f.stateTax, BOUNDS.stateTax.min, BOUNDS.stateTax.max),
+    propertyTaxPctCapex: clamp(
+      f.propertyTaxPctCapex,
+      BOUNDS.propertyTaxPctCapex.min,
+      BOUNDS.propertyTaxPctCapex.max,
+    ),
+    obbbaEnabled: Boolean(f.obbbaEnabled),
+    pue: clamp(f.pue, BOUNDS.pue.min, BOUNDS.pue.max),
+    hoursPerYear: clampInt(f.hoursPerYear, BOUNDS.hoursPerYear.min, BOUNDS.hoursPerYear.max),
+    usefulLifeYrs: clampInt(f.usefulLifeYrs, BOUNDS.usefulLifeYrs.min, BOUNDS.usefulLifeYrs.max),
+    hallCount: clampInt(f.hallCount, BOUNDS.hallCount.min, BOUNDS.hallCount.max),
+    containerCost: Math.max(0, f.containerCost),
+    siteConstruction: Math.max(0, f.siteConstruction),
+    networkOpexMo: Math.max(0, f.networkOpexMo),
+    omOpexMo: Math.max(0, f.omOpexMo),
+    insurancePctRev: clamp(f.insurancePctRev, BOUNDS.insurancePctRev.min, BOUNDS.insurancePctRev.max),
+    otherOpexPctRev: clamp(
+      f.otherOpexPctRev,
+      BOUNDS.otherOpexPctRev.min,
+      BOUNDS.otherOpexPctRev.max,
+    ),
   };
 }
 
@@ -80,6 +144,8 @@ export function clampInputs(inputs: ModelInputs): ModelInputs {
     ),
     sku5090: clampSku(inputs.sku5090, DEFAULT_SKU_5090.itLoadKw),
     skuPro6000: clampSku(inputs.skuPro6000, DEFAULT_SKU_PRO6000.itLoadKw),
+    skuGb300: clampGb300Sku(inputs.skuGb300 ?? DEFAULT_SKU_GB300),
+    gb300Facility: clampFacility(inputs.gb300Facility ?? DEFAULT_GB300_FACILITY),
   };
 }
 
@@ -104,13 +170,30 @@ const NUM = {
   life: "usefulLifeYrs",
 } as const satisfies Record<string, keyof ModelInputs>;
 
+const G_NUM = {
+  g_kwh: "elecPerKwh",
+  g_fed: "federalTax",
+  g_st: "stateTax",
+  g_pt: "propertyTaxPctCapex",
+  g_pue: "pue",
+  g_hpy: "hoursPerYear",
+  g_life: "usefulLifeYrs",
+  g_hall: "hallCount",
+  g_ccost: "containerCost",
+  g_sc: "siteConstruction",
+  g_net: "networkOpexMo",
+  g_om: "omOpexMo",
+  g_ins: "insurancePctRev",
+  g_oth: "otherOpexPctRev",
+} as const satisfies Record<string, keyof Gb300Facility>;
+
 const SKU_NUM = {
   sp: "serverPrice",
   rent: "gpuRentPerHr",
   util: "utilization",
   it: "itLoadKw",
   res: "residualPct",
-} as const satisfies Record<string, Exclude<keyof SkuInputs, "bom">>;
+} as const satisfies Record<string, Exclude<keyof SkuInputs, "bom" | "rackCount" | "gpusPerServer">>;
 
 type SkuNumField = (typeof SKU_NUM)[keyof typeof SKU_NUM];
 
@@ -138,6 +221,8 @@ export function inputsFromSearchParams(params: URLSearchParams): ModelInputs {
     ...DEFAULT_INPUTS,
     sku5090: { ...DEFAULT_INPUTS.sku5090, bom: cloneBom(DEFAULT_INPUTS.sku5090.bom) },
     skuPro6000: { ...DEFAULT_INPUTS.skuPro6000, bom: cloneBom(DEFAULT_INPUTS.skuPro6000.bom) },
+    skuGb300: { ...DEFAULT_INPUTS.skuGb300, bom: cloneBom(DEFAULT_INPUTS.skuGb300.bom) },
+    gb300Facility: { ...DEFAULT_GB300_FACILITY },
   };
 
   const site = params.get("site");
@@ -147,6 +232,11 @@ export function inputsFromSearchParams(params: URLSearchParams): ModelInputs {
   if (pe != null) next.priceErosionOn = pe;
   const obbba = parseBool(params.get("obbba"));
   if (obbba != null) next.obbbaEnabled = obbba;
+
+  const gSite = params.get("g_site");
+  if (gSite) next.gb300Facility.siteName = gSite;
+  const gObbba = parseBool(params.get("g_obbba"));
+  if (gObbba != null) next.gb300Facility.obbbaEnabled = gObbba;
 
   for (const [key, field] of Object.entries(NUM)) {
     const n = parseNum(params.get(key));
@@ -158,18 +248,35 @@ export function inputsFromSearchParams(params: URLSearchParams): ModelInputs {
     next.elecPerKwh = legacyElec / (next.hoursPerYear / 12);
   }
 
+  for (const [key, field] of Object.entries(G_NUM)) {
+    const n = parseNum(params.get(key));
+    if (n != null) {
+      (next.gb300Facility as unknown as Record<string, number>)[field] = n;
+    }
+  }
+
   for (const [key, field] of Object.entries(SKU_NUM) as [string, SkuNumField][]) {
     const a = parseNum(params.get(`a_${key}`));
     if (a != null) next.sku5090[field] = a;
     const b = parseNum(params.get(`b_${key}`));
     if (b != null) next.skuPro6000[field] = b;
+    const c = parseNum(params.get(`c_${key}`));
+    if (c != null) next.skuGb300[field] = c;
   }
+
+  const cRc = parseNum(params.get("c_rc"));
+  if (cRc != null) next.skuGb300.rackCount = cRc;
+  const cGp = parseNum(params.get("c_gp"));
+  if (cGp != null) next.skuGb300.gpusPerServer = cGp;
 
   if (parseNum(params.get("a_sp")) != null) {
     next.sku5090.bom = syncBomToPrice(next.sku5090.bom, next.sku5090.serverPrice);
   }
   if (parseNum(params.get("b_sp")) != null) {
     next.skuPro6000.bom = syncBomToPrice(next.skuPro6000.bom, next.skuPro6000.serverPrice);
+  }
+  if (parseNum(params.get("c_sp")) != null) {
+    next.skuGb300.bom = syncBomToPrice(next.skuGb300.bom, next.skuGb300.serverPrice);
   }
 
   return clampInputs(next);
@@ -188,6 +295,19 @@ export function searchParamsFromState(tab: TabId, inputs: ModelInputs): URLSearc
   if (inputs.priceErosionOn !== d.priceErosionOn) params.set("pe", inputs.priceErosionOn ? "1" : "0");
   if (inputs.obbbaEnabled !== d.obbbaEnabled) params.set("obbba", inputs.obbbaEnabled ? "1" : "0");
 
+  const gSite = inputs.gb300Facility.siteName.trim();
+  if (gSite && gSite !== d.gb300Facility.siteName) params.set("g_site", gSite);
+  if (inputs.gb300Facility.obbbaEnabled !== d.gb300Facility.obbbaEnabled) {
+    params.set("g_obbba", inputs.gb300Facility.obbbaEnabled ? "1" : "0");
+  }
+  for (const [key, field] of Object.entries(G_NUM)) {
+    const value = inputs.gb300Facility[field];
+    const def = d.gb300Facility[field];
+    if (typeof value === "number" && typeof def === "number" && !close(value, def)) {
+      params.set(key, String(value));
+    }
+  }
+
   for (const [key, field] of Object.entries(NUM)) {
     const value = inputs[field];
     const def = d[field];
@@ -203,7 +323,17 @@ export function searchParamsFromState(tab: TabId, inputs: ModelInputs): URLSearc
     if (!close(inputs.skuPro6000[field], d.skuPro6000[field])) {
       params.set(`b_${key}`, String(inputs.skuPro6000[field]));
     }
+    if (!close(inputs.skuGb300[field], d.skuGb300[field])) {
+      params.set(`c_${key}`, String(inputs.skuGb300[field]));
+    }
   }
+
+  const rc = inputs.skuGb300.rackCount;
+  const rcDef = d.skuGb300.rackCount ?? 24;
+  if (rc != null && !close(rc, rcDef)) params.set("c_rc", String(rc));
+  const gp = inputs.skuGb300.gpusPerServer;
+  const gpDef = d.skuGb300.gpusPerServer ?? 72;
+  if (gp != null && !close(gp, gpDef)) params.set("c_gp", String(gp));
 
   return params;
 }

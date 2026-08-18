@@ -1,7 +1,15 @@
-export const SKU_IDS = ["5090", "pro6000"] as const;
+export const SKU_IDS = ["5090", "pro6000", "gb300"] as const;
 export type SkuId = (typeof SKU_IDS)[number];
 
-export const TABS = ["5090", "pro6000", "compare", "research"] as const;
+export const SKU_STATE_KEY = {
+  "5090": "sku5090",
+  pro6000: "skuPro6000",
+  gb300: "skuGb300",
+} as const satisfies Record<SkuId, "sku5090" | "skuPro6000" | "skuGb300">;
+
+export type SkuStateKey = (typeof SKU_STATE_KEY)[SkuId];
+
+export const TABS = ["5090", "pro6000", "gb300", "compare", "research"] as const;
 export type TabId = (typeof TABS)[number];
 
 export type BomLine = {
@@ -18,6 +26,10 @@ export type SkuInputs = {
   utilization: number;
   itLoadKw: number;
   residualPct: number;
+  /** GB300 NVL72: rack count. Unset = shared container × servers. */
+  rackCount?: number;
+  /** GB300 NVL72: GPUs per rack. Unset = shared gpusPerServer. */
+  gpusPerServer?: number;
 };
 
 export type SharedInputs = {
@@ -44,9 +56,31 @@ export type SharedInputs = {
   usefulLifeYrs: number;
 };
 
+/** GB300 NVL72 site / tax / topology. Never copied from 5090 / Pro 6000. */
+export type Gb300Facility = {
+  siteName: string;
+  elecPerKwh: number;
+  federalTax: number;
+  stateTax: number;
+  propertyTaxPctCapex: number;
+  obbbaEnabled: boolean;
+  pue: number;
+  hoursPerYear: number;
+  usefulLifeYrs: number;
+  hallCount: number;
+  containerCost: number;
+  siteConstruction: number;
+  networkOpexMo: number;
+  omOpexMo: number;
+  insurancePctRev: number;
+  otherOpexPctRev: number;
+};
+
 export type ModelInputs = SharedInputs & {
   sku5090: SkuInputs;
   skuPro6000: SkuInputs;
+  skuGb300: SkuInputs;
+  gb300Facility: Gb300Facility;
 };
 
 export type YearRow = {
@@ -107,4 +141,9 @@ export type SkuResult = {
 export type ModelResult = {
   sku5090: SkuResult;
   skuPro6000: SkuResult;
+  skuGb300: SkuResult;
 };
+
+export function skuState(inputs: ModelInputs, skuId: SkuId): SkuInputs {
+  return inputs[SKU_STATE_KEY[skuId]];
+}
