@@ -83,7 +83,8 @@ const EN = {
   breakevenMonth: "Breakeven month",
 
   yearlyTitle: "Yearly P&L + cash flow",
-  yearlyCaption: "$000. ( ) = negative. Hover a header for the definition.",
+  yearlyCaption:
+    "Figures in $000. Parentheses mean negative. Hover a header for the definition.",
   yearlyYear: "Year",
   yearlyYearTip: "Calendar year. Y0 is the capex outlay. Y1–Yn are operating years.",
   yearlyRevenue: "Revenue",
@@ -283,7 +284,7 @@ const ZH: Record<MsgKey, string> = {
   breakevenMonth: "回本月",
 
   yearlyTitle: "年度 P&L + 现金流",
-  yearlyCaption: "$000。括号为负。悬停表头看定义。",
+  yearlyCaption: "金额单位为千美元。括号表示负数。将指针移到表头查看定义。",
   yearlyYear: "年",
   yearlyYearTip: "日历年。Y0 为 capex 支出。Y1–Yn 为运营年。",
   yearlyRevenue: "收入",
