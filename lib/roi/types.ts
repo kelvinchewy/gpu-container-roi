@@ -9,7 +9,7 @@ export const SKU_STATE_KEY = {
 
 export type SkuStateKey = (typeof SKU_STATE_KEY)[SkuId];
 
-export const TABS = ["5090", "pro6000", "gb300", "compare", "research"] as const;
+export const TABS = ["5090", "pro6000", "compare", "gb300"] as const;
 export type TabId = (typeof TABS)[number];
 
 export type BomLine = {
@@ -26,9 +26,9 @@ export type SkuInputs = {
   utilization: number;
   itLoadKw: number;
   residualPct: number;
-  /** GB300 NVL72: rack count. Unset = shared container × servers. */
+  /** GB300 NVL72: rack count. Unset = Reset 24. */
   rackCount?: number;
-  /** GB300 NVL72: GPUs per rack. Unset = shared gpusPerServer. */
+  /** GB300 NVL72: GPUs per rack. Unset = Reset 72. */
   gpusPerServer?: number;
 };
 

@@ -1,13 +1,14 @@
 "use client";
 
 import { Switch } from "@/components/ui/switch";
-import { BOUNDS } from "@/lib/roi/defaults";
+import { BOUNDS, DEFAULT_GB300_FACILITY } from "@/lib/roi/defaults";
 import { kwh } from "@/lib/roi/format";
 import type { Gb300Facility, ModelInputs, SkuId, SkuInputs, TabId } from "@/lib/roi/types";
 import { cn } from "@/lib/utils";
 
 import { AdvancedAccordion, Gb300Accordion } from "./advanced-accordion";
-import { Field, NumberInput, PercentInput } from "./fields";
+import { Field, FieldRow, NumberInput, PercentInput } from "./fields";
+import { useT } from "./locale";
 
 export function ChromeBar({
   tab,
@@ -23,9 +24,10 @@ export function ChromeBar({
   onFacilityChange: (patch: Partial<Gb300Facility>) => void;
 }) {
   const gb300 = tab === "gb300";
-  const f = inputs.gb300Facility;
+  const f = inputs.gb300Facility ?? DEFAULT_GB300_FACILITY;
   const power = gb300 ? f.elecPerKwh : inputs.elecPerKwh;
   const pue = gb300 ? f.pue : inputs.pue;
+  const { t } = useT();
 
   return (
     <div
@@ -34,11 +36,11 @@ export function ChromeBar({
         gb300 ? "bg-primary/5" : "bg-muted/30",
       )}
     >
-      <div className="grid gap-4 md:grid-cols-3">
+      <FieldRow className="md:grid-cols-3">
         <Field
           emphasis
-          label="Power ($/kWh)"
-          hint={`effective ${kwh(power * pue)}`}
+          label={t("power")}
+          hint={t("effective", { value: kwh(power * pue) })}
         >
           <NumberInput
             value={power}
@@ -50,7 +52,7 @@ export function ChromeBar({
             }
           />
         </Field>
-        <Field emphasis label="Discount rate (NPV)">
+        <Field emphasis label={t("discount")}>
           <PercentInput
             value={inputs.discountRate}
             min={BOUNDS.discountRate.min * 100}
@@ -61,25 +63,29 @@ export function ChromeBar({
         </Field>
         <Field
           emphasis
-          label="Price decay (%/yr)"
+          label={t("priceDecay")}
           extra={
             <Switch
               size="sm"
               checked={inputs.priceErosionOn}
-              aria-label="Apply price decay"
+              aria-label={t("applyDecay")}
               onCheckedChange={(checked) => onChange({ priceErosionOn: Boolean(checked) })}
             />
           }
         >
-          <PercentInput
-            value={inputs.priceErosionRate}
-            min={BOUNDS.priceErosionRate.min * 100}
-            max={BOUNDS.priceErosionRate.max * 100}
-            step={1}
-            onChange={(priceErosionRate) => onChange({ priceErosionRate })}
-          />
+          {inputs.priceErosionOn ? (
+            <PercentInput
+              value={inputs.priceErosionRate}
+              min={BOUNDS.priceErosionRate.min * 100}
+              max={BOUNDS.priceErosionRate.max * 100}
+              step={1}
+              onChange={(priceErosionRate) => onChange({ priceErosionRate })}
+            />
+          ) : (
+            <span className="sr-only">{t("decayOff")}</span>
+          )}
         </Field>
-      </div>
+      </FieldRow>
       {gb300 ? (
         <Gb300Accordion
           inputs={inputs}

@@ -11,6 +11,7 @@ import { PnlChart } from "./pnl-chart";
 import { SensitivityMatrix } from "./sensitivity-matrix";
 import { SkuPrimaryInputs } from "./sku-primary-inputs";
 import { YearlyDisclosure } from "./yearly-disclosure";
+import { useT } from "./locale";
 
 export function GpuTab({
   skuId,
@@ -24,18 +25,15 @@ export function GpuTab({
   onSkuChange: (skuId: SkuId, patch: Partial<SkuInputs>) => void;
 }) {
   const sku = skuState(inputs, skuId);
-  const caption = chartCaption(inputs, result.skuLabel, skuId);
+  const { t, locale } = useT();
+  const caption = chartCaption(inputs, result.skuLabel, skuId, locale);
 
   return (
     <div className="grid gap-6">
       <Card>
         <CardHeader>
           <CardTitle>{SKU_LABEL[skuId]}</CardTitle>
-          <CardDescription>
-            {skuId === "gb300"
-              ? "Rack price, GPU rent, utilization, and rack count. Edits this SKU only."
-              : "Server price, GPU rent, and utilization. Edits this SKU only."}
-          </CardDescription>
+          <CardDescription>{t("editsThisSku")}</CardDescription>
         </CardHeader>
         <CardContent>
           <SkuPrimaryInputs
@@ -48,7 +46,7 @@ export function GpuTab({
       <KpiStrip result={result} />
       <Card>
         <CardHeader>
-          <CardTitle>P&L and cumulative NCF ($)</CardTitle>
+          <CardTitle>{t("pnlTitle")}</CardTitle>
           <CardDescription>{caption}</CardDescription>
         </CardHeader>
         <CardContent>
@@ -57,7 +55,7 @@ export function GpuTab({
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Breakeven month</CardTitle>
+          <CardTitle>{t("breakevenTitle")}</CardTitle>
           <CardDescription>{caption}</CardDescription>
         </CardHeader>
         <CardContent>

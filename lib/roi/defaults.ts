@@ -28,7 +28,7 @@ export const DEFAULT_SKU_PRO6000: SkuInputs = {
 export const DEFAULT_SKU_GB300: SkuInputs = {
   serverPrice: bomSum(DEFAULT_BOM.gb300),
   bom: DEFAULT_BOM.gb300.map((line) => ({ ...line })),
-  gpuRentPerHr: 10,
+  gpuRentPerHr: 720,
   utilization: 1,
   itLoadKw: 140,
   residualPct: 0.1,
@@ -47,8 +47,8 @@ export const DEFAULT_GB300_FACILITY: Gb300Facility = {
   hoursPerYear: 8760,
   usefulLifeYrs: 5,
   hallCount: 1,
-  containerCost: 400_000,
-  siteConstruction: 200_000,
+  containerCost: 0,
+  siteConstruction: 58_000_000,
   networkOpexMo: 3750,
   omOpexMo: 2500,
   insurancePctRev: 0.03,
@@ -88,6 +88,7 @@ export const BOUNDS = {
   discountRate: { min: 0.05, max: 0.2 },
   priceErosionRate: { min: 0, max: 0.25 },
   gpuRentPerHr: { min: 0.01, max: 50 },
+  gb300RentPerHr: { min: 0.01, max: 5000 },
   utilization: { min: 0.4, max: 1 },
   federalTax: { min: 0, max: 0.35 },
   stateTax: { min: 0, max: 0.15 },
@@ -104,7 +105,8 @@ export const BOUNDS = {
   insurancePctRev: { min: 0, max: 0.1 },
   otherOpexPctRev: { min: 0, max: 0.1 },
   residualPct: { min: 0, max: 0.3 },
-  usefulLifeYrs: { min: 3, max: 7 },
+  usefulLifeYrs: { min: 3, max: 5 },
+  gb300UsefulLifeYrs: { min: 3, max: 10 },
 } as const;
 
 export const EXCEL_ELEC_PER_KWH = 60 / (8760 / 12);

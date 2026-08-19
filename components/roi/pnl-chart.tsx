@@ -13,17 +13,18 @@ import {
 import { usdK } from "@/lib/roi/format";
 import type { SkuResult } from "@/lib/roi/types";
 
-const pnlConfig: ChartConfig = {
-  revenue: { label: "Revenue", color: "var(--gain-soft)" },
-  opex: { label: "OpEx", color: "var(--destructive)" },
-  ncf: { label: "NCF", color: "var(--gain)" },
-};
-
-const cumConfig: ChartConfig = {
-  cumulative: { label: "Cumulative NCF", color: "var(--gain)" },
-};
+import { useT } from "./locale";
 
 export function PnlChart({ result }: { result: SkuResult }) {
+  const { t } = useT();
+  const pnlConfig: ChartConfig = {
+    revenue: { label: t("chartRevenue"), color: "var(--gain-soft)" },
+    opex: { label: t("chartOpex"), color: "var(--destructive)" },
+    ncf: { label: t("chartNcf"), color: "var(--gain)" },
+  };
+  const cumConfig: ChartConfig = {
+    cumulative: { label: t("chartCumulative"), color: "var(--gain)" },
+  };
   const data = [
     {
       year: "Y0",

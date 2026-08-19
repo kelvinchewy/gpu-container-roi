@@ -20,9 +20,11 @@ import {
   years,
 } from "@/lib/roi/format";
 import type { ModelInputs, SkuResult } from "@/lib/roi/types";
+import type { Locale } from "@/lib/roi/i18n";
 import { cn } from "@/lib/utils";
 
 import { CumulativeChart } from "./cumulative-chart";
+import { useT } from "./locale";
 
 type MetricRow = {
   metric: string;
@@ -51,28 +53,20 @@ function HeadTip({ label, tip }: { label: string; tip: string }) {
 }
 
 function TaxMetricHeads() {
+  const { t } = useT();
   return (
     <>
       <TableHead className="text-right">
-        <HeadTip
-          label="Dep"
-          tip="Depreciation this year. OBBBA on: 100% of depreciable basis in Y1. OBBBA off: even split over the useful life."
-        />
+        <HeadTip label={t("yearlyDep")} tip={t("taxDepTip")} />
       </TableHead>
       <TableHead className="text-right">
-        <HeadTip
-          label="EBIT"
-          tip="EBITDA minus depreciation. A Y1 loss under OBBBA is the bonus creating NOL."
-        />
+        <HeadTip label={t("yearlyEbit")} tip={t("taxEbitTip")} />
       </TableHead>
       <TableHead className="text-right">
-        <HeadTip label="Tax" tip="Cash tax paid this year." />
+        <HeadTip label={t("yearlyTax")} tip={t("taxCashTip")} />
       </TableHead>
       <TableHead className="text-right">
-        <HeadTip
-          label="NOL"
-          tip="Unused tax loss carried forward. Later years can offset up to 80% of EBITDA."
-        />
+        <HeadTip label={t("yearlyNol")} tip={t("taxNolTip")} />
       </TableHead>
     </>
   );
@@ -122,10 +116,10 @@ function signedUsd(value: number): string {
   return abs;
 }
 
-function signedYears(value: number | null, other: number | null): string {
+function signedYears(value: number | null, other: number | null, locale: Locale): string {
   if (value == null || other == null) return "—";
   const d = value - other;
-  const abs = `${Math.abs(d).toFixed(2)} yrs`;
+  const abs = years(Math.abs(d), 2, locale);
   if (d > 0) return `+${abs}`;
   if (d < 0) return `−${abs}`;
   return abs;
@@ -169,6 +163,7 @@ function MetricTable({
   description: string;
   rows: MetricRow[];
 }) {
+  const { t } = useT();
   return (
     <Card>
       <CardHeader>
@@ -179,14 +174,11 @@ function MetricTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Metric</TableHead>
+              <TableHead>{t("metric")}</TableHead>
               <TableHead className="text-right">RTX 5090</TableHead>
               <TableHead className="text-right">Pro 6000</TableHead>
               <TableHead className="text-right">
-                <HeadTip
-                  label="Delta"
-                  tip="Pro 6000 − RTX 5090. Sign shows who is better. Blue = Pro 6000. Muted = 5090."
-                />
+                <HeadTip label={t("delta")} tip={t("deltaTip")} />
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -222,12 +214,13 @@ export function CompareTab({
   sku5090: SkuResult;
   skuPro6000: SkuResult;
 }) {
-  const caption = chartCaption(inputs, "5090 vs Pro 6000");
-  const obbba = inputs.obbbaEnabled ? "OBBBA on" : "OBBBA off";
+  const { t, locale } = useT();
+  const caption = chartCaption(inputs, "5090 vs Pro 6000", undefined, locale);
+  const obbba = t(inputs.obbbaEnabled ? "obbbaOn" : "obbbaOff");
 
   const kpiRows: MetricRow[] = [
     {
-      metric: "CapEx",
+      metric: t("capex"),
       a: usd(sku5090.totalCapex),
       b: usd(skuPro6000.totalCapex),
       delta: signedUsd(skuPro6000.totalCapex - sku5090.totalCapex),
@@ -235,7 +228,7 @@ export function CompareTab({
       higherIsBetter: false,
     },
     {
-      metric: "Y1 NCF",
+      metric: t("y1Ncf"),
       a: usd(sku5090.y1Ncf),
       b: usd(skuPro6000.y1Ncf),
       delta: signedUsd(skuPro6000.y1Ncf - sku5090.y1Ncf),
@@ -243,10 +236,10 @@ export function CompareTab({
       higherIsBetter: true,
     },
     {
-      metric: "Payback",
-      a: years(sku5090.paybackYears),
-      b: years(skuPro6000.paybackYears),
-      delta: signedYears(skuPro6000.paybackYears, sku5090.paybackYears),
+      metric: t("payback"),
+      a: years(sku5090.paybackYears, 2, locale),
+      b: years(skuPro6000.paybackYears, 2, locale),
+      delta: signedYears(skuPro6000.paybackYears, sku5090.paybackYears, locale),
       deltaValue:
         skuPro6000.paybackYears == null || sku5090.paybackYears == null
           ? null
@@ -254,7 +247,7 @@ export function CompareTab({
       higherIsBetter: false,
     },
     {
-      metric: "IRR",
+      metric: t("irr"),
       a: irrLabel(sku5090.irr),
       b: irrLabel(skuPro6000.irr),
       delta: signedPctPts(skuPro6000.irr, sku5090.irr),
@@ -265,7 +258,7 @@ export function CompareTab({
       higherIsBetter: true,
     },
     {
-      metric: "NPV",
+      metric: t("npv"),
       a: usd(sku5090.npv),
       b: usd(skuPro6000.npv),
       delta: signedUsd(skuPro6000.npv - sku5090.npv),
@@ -273,7 +266,7 @@ export function CompareTab({
       higherIsBetter: true,
     },
     {
-      metric: `Residual (Y${sku5090.years.length})`,
+      metric: t("residualYn", { n: sku5090.years.length }),
       a: usd(sku5090.residualCash),
       b: usd(skuPro6000.residualCash),
       delta: signedUsd(skuPro6000.residualCash - sku5090.residualCash),
@@ -281,7 +274,7 @@ export function CompareTab({
       higherIsBetter: true,
     },
     {
-      metric: "Breakeven month",
+      metric: t("breakevenMonth"),
       a: monthLabel(sku5090.breakevenMonth),
       b: monthLabel(skuPro6000.breakevenMonth),
       delta: signedMonth(skuPro6000.breakevenMonth, sku5090.breakevenMonth),
@@ -295,7 +288,7 @@ export function CompareTab({
 
   const returnRows: MetricRow[] = [
     {
-      metric: "Cash-on-cash",
+      metric: t("cashOnCash"),
       a: pct(sku5090.cashOnCash, 2),
       b: pct(skuPro6000.cashOnCash, 2),
       delta: signedPctPts(skuPro6000.cashOnCash, sku5090.cashOnCash),
@@ -303,7 +296,7 @@ export function CompareTab({
       higherIsBetter: true,
     },
     {
-      metric: "Total ROI",
+      metric: t("totalRoi"),
       a: pct(sku5090.totalRoi, 2),
       b: pct(skuPro6000.totalRoi, 2),
       delta: signedPctPts(skuPro6000.totalRoi, sku5090.totalRoi),
@@ -311,7 +304,7 @@ export function CompareTab({
       higherIsBetter: true,
     },
     {
-      metric: "MOIC",
+      metric: t("moic"),
       a: multiple(sku5090.moic),
       b: multiple(skuPro6000.moic),
       delta: signedMultiple(skuPro6000.moic, sku5090.moic),
@@ -322,7 +315,7 @@ export function CompareTab({
 
   const unitRows: MetricRow[] = [
     {
-      metric: "Revenue / GPU",
+      metric: t("revenuePerGpu"),
       a: usd(sku5090.revenuePerGpu),
       b: usd(skuPro6000.revenuePerGpu),
       delta: signedUsd(skuPro6000.revenuePerGpu - sku5090.revenuePerGpu),
@@ -330,7 +323,7 @@ export function CompareTab({
       higherIsBetter: true,
     },
     {
-      metric: "OpEx / GPU",
+      metric: t("opexPerGpu"),
       a: usd(sku5090.opexPerGpu),
       b: usd(skuPro6000.opexPerGpu),
       delta: signedUsd(skuPro6000.opexPerGpu - sku5090.opexPerGpu),
@@ -338,7 +331,7 @@ export function CompareTab({
       higherIsBetter: false,
     },
     {
-      metric: "NCF / GPU",
+      metric: t("ncfPerGpu"),
       a: usd(sku5090.ncfPerGpu),
       b: usd(skuPro6000.ncfPerGpu),
       delta: signedUsd(skuPro6000.ncfPerGpu - sku5090.ncfPerGpu),
@@ -346,7 +339,7 @@ export function CompareTab({
       higherIsBetter: true,
     },
     {
-      metric: "CapEx / GPU",
+      metric: t("capexPerGpu"),
       a: usd(sku5090.capexPerGpu),
       b: usd(skuPro6000.capexPerGpu),
       delta: signedUsd(skuPro6000.capexPerGpu - sku5090.capexPerGpu),
@@ -354,7 +347,7 @@ export function CompareTab({
       higherIsBetter: false,
     },
     {
-      metric: "Revenue / kW",
+      metric: t("revenuePerKw"),
       a: usd(sku5090.revenuePerKw),
       b: usd(skuPro6000.revenuePerKw),
       delta: signedUsd(skuPro6000.revenuePerKw - sku5090.revenuePerKw),
@@ -362,7 +355,7 @@ export function CompareTab({
       higherIsBetter: true,
     },
     {
-      metric: "NCF / kW",
+      metric: t("ncfPerKw"),
       a: usd(sku5090.ncfPerKw),
       b: usd(skuPro6000.ncfPerKw),
       delta: signedUsd(skuPro6000.ncfPerKw - sku5090.ncfPerKw),
@@ -377,7 +370,7 @@ export function CompareTab({
     y1a && y1b
       ? [
           {
-            metric: "Electricity",
+            metric: t("electricity"),
             a: usd(y1a.electricity),
             b: usd(y1b.electricity),
             delta: signedUsd(y1b.electricity - y1a.electricity),
@@ -385,7 +378,7 @@ export function CompareTab({
             higherIsBetter: false,
           },
           {
-            metric: "Network",
+            metric: t("network"),
             a: usd(y1a.network),
             b: usd(y1b.network),
             delta: signedUsd(y1b.network - y1a.network),
@@ -393,7 +386,7 @@ export function CompareTab({
             higherIsBetter: false,
           },
           {
-            metric: "O&M",
+            metric: t("om"),
             a: usd(y1a.om),
             b: usd(y1b.om),
             delta: signedUsd(y1b.om - y1a.om),
@@ -401,7 +394,7 @@ export function CompareTab({
             higherIsBetter: false,
           },
           {
-            metric: "Insurance (% of rent)",
+            metric: t("insuranceRent"),
             a: usd(y1a.insurance),
             b: usd(y1b.insurance),
             delta: signedUsd(y1b.insurance - y1a.insurance),
@@ -409,7 +402,7 @@ export function CompareTab({
             higherIsBetter: false,
           },
           {
-            metric: "Property tax (% of capex)",
+            metric: t("propertyTaxCapex"),
             a: usd(y1a.propertyTax),
             b: usd(y1b.propertyTax),
             delta: signedUsd(y1b.propertyTax - y1a.propertyTax),
@@ -417,7 +410,7 @@ export function CompareTab({
             higherIsBetter: false,
           },
           {
-            metric: "Other (% of rent)",
+            metric: t("otherRent"),
             a: usd(y1a.otherOpex),
             b: usd(y1b.otherOpex),
             delta: signedUsd(y1b.otherOpex - y1a.otherOpex),
@@ -425,7 +418,7 @@ export function CompareTab({
             higherIsBetter: false,
           },
           {
-            metric: "Total OpEx",
+            metric: t("totalOpex"),
             a: usd(y1a.totalOpex),
             b: usd(y1b.totalOpex),
             delta: signedUsd(y1b.totalOpex - y1a.totalOpex),
@@ -439,33 +432,31 @@ export function CompareTab({
     <div className="grid gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>This run</CardTitle>
-          <CardDescription>
-            From the RTX 5090 and Pro 6000 tabs. Shared power, tax, and topology still apply above.
-          </CardDescription>
+          <CardTitle>{t("thisRun")}</CardTitle>
+          <CardDescription>{t("thisRunDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Input</TableHead>
+                <TableHead>{t("input")}</TableHead>
                 <TableHead className="text-right">RTX 5090</TableHead>
                 <TableHead className="text-right">Pro 6000</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               <TableRow>
-                <TableCell>Server price</TableCell>
+                <TableCell>{t("serverPrice")}</TableCell>
                 <TableCell className="text-right font-mono">{usd(inputs.sku5090.serverPrice)}</TableCell>
                 <TableCell className="text-right font-mono">{usd(inputs.skuPro6000.serverPrice)}</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell>GPU rent ($/GPU-hr)</TableCell>
+                <TableCell>{t("gpuRentCompare")}</TableCell>
                 <TableCell className="text-right font-mono">${inputs.sku5090.gpuRentPerHr.toFixed(2)}</TableCell>
                 <TableCell className="text-right font-mono">${inputs.skuPro6000.gpuRentPerHr.toFixed(2)}</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell>Utilization</TableCell>
+                <TableCell>{t("matrixUtil")}</TableCell>
                 <TableCell className="text-right font-mono">{pct(inputs.sku5090.utilization, 0)}</TableCell>
                 <TableCell className="text-right font-mono">{pct(inputs.skuPro6000.utilization, 0)}</TableCell>
               </TableRow>
@@ -474,23 +465,20 @@ export function CompareTab({
         </CardContent>
       </Card>
       <MetricTable
-        title="KPIs"
-        description={`Pro 6000 − RTX 5090 · ${obbba}`}
+        title={t("kpis")}
+        description={t("kpisDesc", { obbba })}
         rows={kpiRows}
       />
       <MetricTable
-        title="Returns"
-        description="Cash-on-cash = mean operating NCF / CapEx. MOIC includes residual."
+        title={t("returns")}
+        description={t("returnsDesc")}
         rows={returnRows}
       />
       <Card>
         <CardHeader>
-          <CardTitle>Tax path</CardTitle>
+          <CardTitle>{t("taxPath")}</CardTitle>
           <CardDescription>
-            How each year is taxed after depreciation · {obbba}
-            {inputs.obbbaEnabled
-              ? " · Y1 writes off the full depreciable basis"
-              : " · depreciation is split evenly each year"}
+            {t(inputs.obbbaEnabled ? "taxPathOn" : "taxPathOff", { obbba })}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -498,7 +486,7 @@ export function CompareTab({
             <TableHeader>
               <TableRow>
                 <TableHead rowSpan={2} className="h-auto align-bottom">
-                  Year
+                  {t("yearlyYear")}
                 </TableHead>
                 <TableHead colSpan={4} className="text-center">
                   RTX 5090
@@ -549,18 +537,18 @@ export function CompareTab({
         </CardContent>
       </Card>
       <MetricTable
-        title="Unit economics"
-        description="Y1 active path · per GPU and per facility kW (IT × PUE)"
+        title={t("unitEcon")}
+        description={t("unitEconDesc")}
         rows={unitRows}
       />
       <MetricTable
-        title="OpEx"
-        description="Y1 · electricity from IT load × PUE × tariff; insurance / other from rent; property tax from capex"
+        title={t("opexTitle")}
+        description={t("opexDesc")}
         rows={opexRows}
       />
       <Card>
         <CardHeader>
-          <CardTitle>Cumulative NCF ($)</CardTitle>
+          <CardTitle>{t("cumulativeNcf")}</CardTitle>
           <CardDescription>{caption}</CardDescription>
         </CardHeader>
         <CardContent>

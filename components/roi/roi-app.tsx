@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DEFAULT_INPUTS } from "@/lib/roi/defaults";
+import { htmlLang, parseLocale, type Locale } from "@/lib/roi/i18n";
 import { cloneBom } from "@/lib/roi/sources";
 import { runModel } from "@/lib/roi/engine";
 import { clampInputs, inputsFromSearchParams, parseTab, searchParamsFromState } from "@/lib/roi/url";
@@ -14,8 +15,9 @@ import { SKU_STATE_KEY } from "@/lib/roi/types";
 
 import { ChromeBar } from "./chrome-bar";
 import { CompareTab } from "./compare-tab";
-import { ContextTab } from "./context-tab";
 import { GpuTab } from "./gpu-tab";
+import { LanguageToggle } from "./language-toggle";
+import { LocaleProvider, useT } from "./locale";
 
 function subscribeNoop() {
   return () => {};
@@ -27,22 +29,47 @@ export function RoiApp() {
   const pathname = usePathname();
 
   const [tab, setTab] = useState<TabId>(() => parseTab(searchParams.get("tab")));
+  const [locale, setLocale] = useState<Locale>(() => parseLocale(searchParams.get("lang")));
   const [inputs, setInputs] = useState<ModelInputs>(() =>
     inputsFromSearchParams(searchParams),
   );
   const ready = useSyncExternalStore(subscribeNoop, () => true, () => false);
+  const lastWritten = useRef<string | null>(null);
 
   const result = useMemo(() => runModel(inputs), [inputs]);
 
   useEffect(() => {
-    const next = searchParamsFromState(tab, inputs).toString();
-    const current = searchParams.toString();
-    if (next === current) return;
+    document.documentElement.lang = htmlLang(locale);
+  }, [locale]);
+
+  // Back / pasted URL: apply tab, lang, and inputs. Skip our own replace via lastWritten.
+  useEffect(() => {
+    const q = searchParams.toString();
+    if (q === lastWritten.current) return;
+    lastWritten.current = q;
+    const urlTab = parseTab(searchParams.get("tab"));
+    const urlLocale = parseLocale(searchParams.get("lang"));
+    const urlInputs = inputsFromSearchParams(searchParams);
+    const canonical = searchParamsFromState(urlTab, urlInputs, urlLocale).toString();
+    setTab((prev) => (prev === urlTab ? prev : urlTab));
+    setLocale((prev) => (prev === urlLocale ? prev : urlLocale));
+    setInputs((prev) =>
+      searchParamsFromState(urlTab, prev, urlLocale).toString() === canonical ? prev : urlInputs,
+    );
+  }, [searchParams]);
+
+  useEffect(() => {
+    const next = searchParamsFromState(tab, inputs, locale).toString();
+    if (next === lastWritten.current) return;
+    const prev = new URLSearchParams(lastWritten.current ?? "");
+    const tabOrLang =
+      parseTab(prev.get("tab")) !== tab || parseLocale(prev.get("lang")) !== locale;
     const id = window.setTimeout(() => {
+      lastWritten.current = next;
       router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
-    }, tab === parseTab(searchParams.get("tab")) ? 200 : 0);
+    }, tabOrLang ? 0 : 200);
     return () => window.clearTimeout(id);
-  }, [tab, inputs, pathname, router, searchParams]);
+  }, [tab, inputs, locale, pathname, router]);
 
   function patchInputs(patch: Partial<ModelInputs>) {
     setInputs((prev) => clampInputs({ ...prev, ...patch }));
@@ -59,7 +86,7 @@ export function RoiApp() {
     setInputs((prev) =>
       clampInputs({
         ...prev,
-        gb300Facility: { ...prev.gb300Facility, ...patch },
+        gb300Facility: { ...(prev.gb300Facility ?? DEFAULT_INPUTS.gb300Facility), ...patch },
       }),
     );
   }
@@ -76,11 +103,63 @@ export function RoiApp() {
     );
   }
 
-  const showChrome = tab !== "research";
-
   if (!ready) {
-    return <main className="p-6 text-sm text-muted-foreground">Loading</main>;
+    return (
+      <LocaleProvider locale={locale}>
+        <AppLoading />
+      </LocaleProvider>
+    );
   }
+
+  return (
+    <LocaleProvider locale={locale}>
+      <RoiShell
+        tab={tab}
+        setTab={setTab}
+        locale={locale}
+        setLocale={setLocale}
+        inputs={inputs}
+        result={result}
+        reset={reset}
+        patchInputs={patchInputs}
+        patchSku={patchSku}
+        patchFacility={patchFacility}
+      />
+    </LocaleProvider>
+  );
+}
+
+function AppLoading() {
+  const { t } = useT();
+  return <main className="p-6 text-sm text-muted-foreground">{t("loading")}</main>;
+}
+
+function RoiShell({
+  tab,
+  setTab,
+  locale,
+  setLocale,
+  inputs,
+  result,
+  reset,
+  patchInputs,
+  patchSku,
+  patchFacility,
+}: {
+  tab: TabId;
+  setTab: (tab: TabId) => void;
+  locale: Locale;
+  setLocale: (locale: Locale) => void;
+  inputs: ModelInputs;
+  result: ReturnType<typeof runModel>;
+  reset: () => void;
+  patchInputs: (patch: Partial<ModelInputs>) => void;
+  patchSku: (skuId: SkuId, patch: Partial<SkuInputs>) => void;
+  patchFacility: (patch: Partial<Gb300Facility>) => void;
+}) {
+  const { t } = useT();
+  const tabClass =
+    "h-8 flex-none rounded-none rounded-t-md border border-transparent bg-primary/10 px-3.5 text-sm hover:bg-primary/15 data-active:border-border data-active:border-b-transparent data-active:bg-background data-active:text-foreground data-active:shadow-[inset_0_2px_0_0_var(--primary)]";
 
   return (
     <div className="mx-auto grid max-w-6xl gap-6 px-4 py-6">
@@ -91,66 +170,42 @@ export function RoiApp() {
         }}
       >
         <div className="grid gap-4 border-b pb-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h1 className="text-xl font-medium tracking-tight">GPU Container ROI</h1>
-            {showChrome ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="min-w-0 text-xl font-medium tracking-tight">{t("title")}</h1>
+            <div className="ml-auto flex shrink-0 items-center justify-end gap-2">
+              <LanguageToggle locale={locale} onChange={setLocale} />
               <Button variant="outline" size="sm" onClick={reset}>
-                Reset
+                {t("reset")}
               </Button>
-            ) : null}
+            </div>
           </div>
           <TabsList
             className="h-auto w-full min-w-0 justify-start gap-px overflow-x-auto rounded-none bg-muted p-0 pt-1 group-data-horizontal/tabs:h-auto"
-            aria-label="Section"
+            aria-label={t("section")}
           >
-            <TabsTrigger
-              className="h-8 flex-none rounded-none rounded-t-md border border-transparent bg-primary/10 px-3.5 text-sm hover:bg-primary/15 data-active:border-border data-active:border-b-transparent data-active:bg-background data-active:text-foreground data-active:shadow-[inset_0_2px_0_0_var(--primary)]"
-              value="5090"
-            >
+            <TabsTrigger className={tabClass} value="5090">
               RTX 5090
             </TabsTrigger>
-            <TabsTrigger
-              className="h-8 flex-none rounded-none rounded-t-md border border-transparent bg-primary/10 px-3.5 text-sm hover:bg-primary/15 data-active:border-border data-active:border-b-transparent data-active:bg-background data-active:text-foreground data-active:shadow-[inset_0_2px_0_0_var(--primary)]"
-              value="pro6000"
-            >
+            <TabsTrigger className={tabClass} value="pro6000">
               Pro 6000
             </TabsTrigger>
-            <TabsTrigger
-              className="h-8 flex-none rounded-none rounded-t-md border border-transparent bg-primary/10 px-3.5 text-sm hover:bg-primary/15 data-active:border-border data-active:border-b-transparent data-active:bg-background data-active:text-foreground data-active:shadow-[inset_0_2px_0_0_var(--primary)]"
-              value="gb300"
-            >
+            <TabsTrigger className={tabClass} value="compare">
+              {t("compare")}
+            </TabsTrigger>
+            <TabsTrigger className={tabClass} value="gb300">
               GB300
             </TabsTrigger>
-            <TabsTrigger
-              className="h-8 flex-none rounded-none rounded-t-md border border-transparent bg-primary/10 px-3.5 text-sm hover:bg-primary/15 data-active:border-border data-active:border-b-transparent data-active:bg-background data-active:text-foreground data-active:shadow-[inset_0_2px_0_0_var(--primary)]"
-              value="compare"
-            >
-              Compare
-            </TabsTrigger>
-            <TabsTrigger
-              className="h-8 flex-none rounded-none rounded-t-md border border-transparent bg-primary/10 px-3.5 text-sm hover:bg-primary/15 data-active:border-border data-active:border-b-transparent data-active:bg-background data-active:text-foreground data-active:shadow-[inset_0_2px_0_0_var(--primary)]"
-              value="research"
-            >
-              Research
-            </TabsTrigger>
           </TabsList>
-          {showChrome ? (
-            <ChromeBar
-              tab={tab}
-              inputs={inputs}
-              onChange={patchInputs}
-              onSkuChange={patchSku}
-              onFacilityChange={patchFacility}
-            />
-          ) : null}
+          <ChromeBar
+            tab={tab}
+            inputs={inputs}
+            onChange={patchInputs}
+            onSkuChange={patchSku}
+            onFacilityChange={patchFacility}
+          />
         </div>
         <TabsContent className="pt-6" value="5090">
-          <GpuTab
-            skuId="5090"
-            inputs={inputs}
-            result={result.sku5090}
-            onSkuChange={patchSku}
-          />
+          <GpuTab skuId="5090" inputs={inputs} result={result.sku5090} onSkuChange={patchSku} />
         </TabsContent>
         <TabsContent className="pt-6" value="pro6000">
           <GpuTab
@@ -160,23 +215,11 @@ export function RoiApp() {
             onSkuChange={patchSku}
           />
         </TabsContent>
-        <TabsContent className="pt-6" value="gb300">
-          <GpuTab
-            skuId="gb300"
-            inputs={inputs}
-            result={result.skuGb300}
-            onSkuChange={patchSku}
-          />
-        </TabsContent>
         <TabsContent className="pt-6" value="compare">
-          <CompareTab
-            inputs={inputs}
-            sku5090={result.sku5090}
-            skuPro6000={result.skuPro6000}
-          />
+          <CompareTab inputs={inputs} sku5090={result.sku5090} skuPro6000={result.skuPro6000} />
         </TabsContent>
-        <TabsContent className="pt-6" value="research">
-          <ContextTab />
+        <TabsContent className="pt-6" value="gb300">
+          <GpuTab skuId="gb300" inputs={inputs} result={result.skuGb300} onSkuChange={patchSku} />
         </TabsContent>
       </Tabs>
     </div>

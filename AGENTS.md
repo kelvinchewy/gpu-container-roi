@@ -4,18 +4,18 @@ This is the project contract. Cursor loads this file the way Claude Code loads `
 
 **Working title:** GPU Container ROI
 **Audience:** English-speaking project managers underwriting a containerized AI data center.
-**Job:** Five tabs. Tabs 1–3: inputs, KPIs, charts, matrix for one GPU (5090, Pro 6000, GB300 NVL72). Tab 4: 5090 vs Pro 6000. Tab 5: listed comps as tables. No marketing copy.
+**Job:** Four tabs. **RTX 5090** · **Pro 6000** · **Compare** · **GB300**. GPU tabs: inputs, KPIs, charts, matrix for one SKU. Compare is 5090 vs Pro 6000 only. No marketing copy.
 
 ---
 
 ## Northstar decisions
 
 - **Excel is the calculator.** Port formulas from the local workbook `GPU_ROI_Model_5090_Atlanta_v5_ScenA.xlsx` (sheets `ROI Model 5090` and `ROI Model pro 6000`). Do not invent math. The workbook and PPT are **not** in git; golden tests in `lib/roi/engine.test.ts` are the public pin.
-- **The PPT is not a public source.** Hardware BOM lives on GPU tabs 5090 and Pro 6000 only. GB300 BOM is a single rack price. Research is independent listed comps with public URLs. **Never use PPT financial totals.** No prose paragraphs in the UI.
+- **The PPT is not a public source.** Hardware BOM lives on GPU tabs 5090 and Pro 6000 only. GB300 BOM is a single rack price. **Never use PPT financial totals.** No prose paragraphs in the UI.
 - **Deal (one line, on chrome chip):** Owner-operator · 100% of GPU-hour rent · EcoHash deploys · unlevered. Not a colo waterfall.
 - **Access:** internal, no auth. Do not submit the Vercel URL to public directories.
-- **Language v1: English only.** US PM English. Labels match Excel English (`Server price`, `Utilization`, `Payback`, `NPV`). No Chinese sublabels. A language switch or `/zh` is later.
-- **UI:** one page, five tabs. Stock shadcn. No custom CSS campaign. No Dashboard/Brief/Story/Lab names.
+- **Language:** Default English. Segmented **EN | 中文** in the header. `?lang=zh` is Simplified Chinese UI; omit when English. No `/zh` route. Engine, goldens, URL keys, SKU names, OBBBA/PUE/IRR/NPV/CapEx/NCF, and USD stay English. User-typed site names are not translated.
+- **UI:** one page, four tabs. Stock shadcn. No custom CSS campaign. No Dashboard/Brief/Story/Lab names.
 - **Notion twin:** [GPU Container ROI](https://app.notion.com/p/hashing/5090-6000-3be1a6d49e8f801d9d11ed4b65ac29cc) is a readable twin for people and other agents. **This file wins if they disagree.**
 
 ---
@@ -24,9 +24,9 @@ This is the project contract. Cursor loads this file the way Claude Code loads `
 
 | Source | Use for | Do not use for |
 | --- | --- | --- |
-| Excel v5 Atlanta ScenA | Engine, defaults, golden tests | Research prose |
-| PPT v2 CN | Research tab tables: BOM, market comps | Capex, rent, util, PUE, payback, IRR, NPV |
-| EcoHash URLs | One link row on Research | A second P&L |
+| Excel v5 Atlanta ScenA | Engine, defaults, golden tests | UI copy |
+| PPT v2 CN | — (not used) | Capex, rent, util, PUE, payback, IRR, NPV |
+| EcoHash URLs | Rent-source dialog citations | A second P&L |
 
 Excel and PPT disagree. Examples for RTX 5090:
 
@@ -39,31 +39,30 @@ Excel and PPT disagree. Examples for RTX 5090:
 | Power | $60 / kW-month | $0.06 / kWh |
 | Total capex | $3.687M | $2.70M |
 
-Research tab is independent listed comps (EcoHash vs market, exclusions). It does not feed the engine unless the user explicitly asks. Tabs 1–4 render **live Excel-engine output** (GB300 uses the same formulas, rack topology). BOM is editable on tabs 1–2 only; GB300 is rack price.
+Tabs 1–4 render **live Excel-engine output** (GB300 uses the same formulas, rack topology). BOM is editable on tabs 1–2 only; GB300 is rack price.
 
 ---
 
 ## Product shape
 
-Five tabs, one engine. Switching tabs does not reset inputs. Air-box fields update 5090 and Pro 6000 only. `gb300Facility` updates GB300 only. Discount rate and price decay update all SKUs. Per-SKU fields never copy across SKUs.
+Four tabs, one engine. Switching tabs does not reset inputs. Air-box fields update 5090 and Pro 6000 only. `gb300Facility` updates GB300 only. Discount rate and price decay update all SKUs. Per-SKU fields never copy across SKUs.
 
 | Tab | Name in UI | What it is |
 | --- | --- | --- |
 | 1 | **RTX 5090** (default) | Inputs, KPIs, charts, matrix for this GPU. |
 | 2 | **Pro 6000** | Same layout as tab 1, other GPU. |
-| 3 | **GB300** | Same layout. NVL72 rack (Blackwell Ultra + Grace), not Vera Rubin. |
-| 4 | **Compare** | 5090 vs Pro 6000 only. Overlay chart, readout, delta table. No GB300. |
-| 5 | **Research** | Independent listed comps (EcoHash vs market), exclusions. Not the calculator. No BOM. |
+| 3 | **Compare** | 5090 vs Pro 6000 only. Overlay chart, readout, delta table. No GB300. |
+| 4 | **GB300** | Same layout as tabs 1–2. NVL72 rack (Blackwell Ultra + Grace), not Vera Rubin. |
 
-Query `?tab=5090|pro6000|gb300|compare|research` (default `5090`). `?tab=context` still opens Research.
+Query `?tab=5090|pro6000|compare|gb300` (default `5090`). `?lang=zh` for Simplified Chinese (omit when `en`). Legacy `?tab=research` or `?tab=context` opens 5090.
 
 ```
 EditableInputs → lib/roi/engine.ts → shared state → all tabs
 ```
 
-There is **no SKU toggle** and **no Dashboard/Brief/Story/Lab**. Tabs 1–3 *are* the SKUs.
+There is **no SKU toggle** and **no Dashboard/Brief/Story/Lab**. Tabs 1, 2, and 4 *are* the SKUs.
 
-### Chrome (tabs 1–4 — not Research)
+### Chrome
 
 Compact bar above the tab strip:
 
@@ -75,13 +74,11 @@ Compact bar above the tab strip:
 
 Discount and price decay update all SKUs. Site, tax, topology, power tariff, and capex/opex rates on the GB300 tab never write to 5090 / Pro 6000, and vice versa.
 
-IT load and residual for 5090 / Pro 6000 sit in the air-box accordion under **Per GPU**. GB300 IT is kW/rack and lives only in the GB300 accordion.
+IT load and residual for 5090 / Pro 6000 sit in the air-box accordion under **Per GPU**. GB300 IT is kW/rack and residual live in the GB300 accordion under **Per rack**. GPUs / rack sits on the GB300 primary card with rack price and racks (same sold-unit row).
 
-Research has no chrome inputs.
+### GPU workbench (5090, Pro 6000, GB300)
 
-### Tabs 1–3 — GPU workbench (identical layout)
-
-Per-SKU inputs: 5090 / Pro 6000 = server price, GPU rent, utilization. GB300 = rack price, GPU rent, utilization, racks. Field labels only.
+Per-SKU inputs: 5090 / Pro 6000 = server price, then GPU rent + utilization on the next row. GB300 = rack price + racks + GPUs / rack, then server rent ($/server-hr) + utilization. Cost and rent are never on the same line. Field labels only.
 
 Order, top to bottom:
 
@@ -93,9 +90,9 @@ Order, top to bottom:
 
 Do not put the other SKU on these tabs.
 
-**GB300 topology (does not use 35 × 8):** one sold unit = one NVL72 rack = 72 GPUs. Reset: 24 racks × $4.0M × 140 kW IT × $10/GPU-hr. `totalServers = rackCount`. Infra = `(gb300Facility.containerCost + siteConstruction) × hallCount` (placeholder). Not Vera Rubin. Compare chrome stays the air-box accordion.
+**GB300 topology (does not use 35 × 8):** one sold unit = one NVL72 rack = 72 GPUs. Reset: 24 racks × $5.0M × 140 kW IT × **$720/server-hr** (`$10/GPU-hr × 72`). `totalServers = rackCount`. Infra = `(gb300Facility.containerCost + siteConstruction) × hallCount` (Reset `$0` + `$58M`). Not Vera Rubin. Compare chrome stays the air-box accordion.
 
-### Tab 4 — Compare
+### Tab 3 — Compare
 
 1. Two readout columns — 5090 | Pro 6000 (server price, rent, utilization) from the GPU tabs. Not editable here. Shared chrome still applies.
 2. KPI delta table — Pro 6000 − 5090 for CapEx, Y1 NCF, Payback, IRR, NPV, Residual (Y5), breakeven month.
@@ -106,20 +103,7 @@ Do not put the other SKU on these tabs.
 7. Overlay cumulative cash (two lines, zero line). Title: `Cumulative NCF ($)`
 8. No matrices. No “winner” sentence. Sign on delta shows who is better on that metric.
 
-### Tab 5 — Research
-
-Independent listed comps. Tables and a bullet exclusion list. No paragraphs. Do **not** show Excel defaults, NPV, or IRR here. GPU-hour charts overlay Reset OpEx $/GPU-hr on listed prints. Do **not** feed these `$` into `runModel` unless the user explicitly asks.
-
-1. Sold as — two-row unit table (bare metal `/GPU-hr` vs tokens `/M tok`)
-2. Best for — pies first (cite getdeploying + Dataintelo), then one job table: Dataintelo category (same keys/colors as the $ mix pie) · Job · What it means · 5090 32 GB · Pro 6000 96 GB. No Good/Poor. Cite Spheron / Dell / Mercatus / Puget.
-3. What the market pays — EcoHash vs listed GPU-hour (venue under each $); two listed $/GPU-hr charts (5090 | Pro 6000), each with own scale; dashed OpEx $/GPU-hr on both (Reset Atlanta Y1 OpEx / GPU-hours); Pro 6000 straight line spans May/Jul gap. No forecast. Does not feed `runModel`.
-4. How DeepSeek-V4-Flash bills — input vs output (OpenRouter $0.14/$0.28 · EcoHash $0.16/$0.33). Same unit · $/GPU-hr: two rows. 5090 = Flash 8× TP=8 measured ($0.34). Pro 6000 = Llama 3.3 70B FP8 1×; token/hr = placeholder. Check only. Does not feed `runModel`.
-5. Exclusion list (bullets): no util ramp; no freight/customs/install; no EcoHash fee; Y1 = full year at stated util; unlevered; residual = servers only
-6. Links row: ecohash.com · ecohash.com/pricing · colocation.ecohash.com · getdeploying · Dataintelo
-
-No live P&L. No inputs.
-
-### KPI strip (tabs 1, 2, 3, 4)
+### KPI strip (5090, Pro 6000, GB300)
 
 Total CapEx · Y1 NCF · Payback (yrs) · IRR (with residual) · NPV · **Residual (Y5)** · **Breakeven month**.
 
@@ -129,9 +113,9 @@ Follows `obbbaEnabled` and the with-residual series. Breakeven month = `ceil(pay
 
 ## Field contract
 
-Almost every assumption is editable. Frequency is a UX grouping, not a hard lock. Defaults = Excel ScenA except GPU rent (`$0.63` / `$1.73`) and power `$0.06/kWh`. GB300 Reset is not Excel: rack `$4.0M` · `$10/GPU-hr` · 24 racks · 72 GPUs · 140 kW. Out-of-bounds values clamp. Per-SKU fields never copy across SKUs. Air-box shared fields update 5090 and Pro 6000 only. `gb300Facility` updates GB300 only. Discount rate and price decay update all SKUs.
+Almost every assumption is editable. Frequency is a UX grouping, not a hard lock. Defaults = Excel ScenA except GPU rent (`$0.63` / `$1.73`) and power `$0.06/kWh`. GB300 Reset is not Excel: rack `$5.0M` · **`$720/server-hr`** (`$10/GPU-hr × 72`) · 24 racks · 72 GPUs · 140 kW · container `$0` · site `$58M`. Out-of-bounds values clamp. Per-SKU fields never copy across SKUs. Air-box shared fields update 5090 and Pro 6000 only. `gb300Facility` updates GB300 only. Discount rate and price decay update all SKUs.
 
-URL search params serialize A + B + C + `g_*` facility + view toggles. Missing params = defaults.
+URL search params serialize A + B + C + `g_*` facility + view toggles + `lang=zh`. Missing params = defaults. Legacy GB300 `c_rent` ≤ 50 with no `c_ru=s` is $/GPU-hr and is multiplied by GPUs/rack. New writes set `c_ru=s` so `$50/server-hr` is not migrated.
 
 ### A — Primary
 
@@ -148,17 +132,15 @@ On the **GB300** tab, power binds `gb300Facility.elecPerKwh` × GB300 PUE. Disco
 
 Show **effective** `$/kWh` next to power: `elecPerKwh × pue`. Input is tariff `$/kWh`. Default `$0.06` (PPT-style). Excel ScenA `$60/kW-month` = `$0.0822/kWh`. Erosion default **off**. Show `priceErosionRate` only when erosion is on.
 
-**Per SKU (GPU tabs 1–3):**
+**Per SKU (5090, Pro 6000, GB300):**
 
 | Key | Label | 5090 | Pro 6000 | GB300 | Bounds |
 | --- | --- | --- | --- | --- | --- |
-| `serverPrice` | Server / rack price | `$88,200` | `$191,800` | `$4,000,000` | > 0 |
-| `gpuRentPerHr` | GPU rent ($/GPU-hr) | `$0.63` | `$1.73` | `$10.00` | 0.01–50 |
+| `serverPrice` | Server / rack price | `$88,200` | `$191,800` | `$5,000,000` | > 0 |
+| `gpuRentPerHr` | GPU rent ($/GPU-hr) · GB300 Server rent ($/server-hr) | `$0.63` | `$1.73` | `$720` | 0.01–50 · GB300 0.01–5000 |
 | `utilization` | Utilization | `100%` | `100%` | `100%` | 40–100% |
 | `rackCount` | Racks | — | — | `24` | 1–64 integer |
 | `gpusPerServer` | GPUs / rack | — (uses shared 8) | — | `72` | 1–128 on GB300 |
-
-Research has no inputs.
 
 ### B — Rarely touched (accordion in chrome)
 
@@ -197,14 +179,14 @@ Research has no inputs.
 
 | Key | Default | Shared? | Bounds |
 | --- | --- | --- | --- |
-| `containerCost` | `$400,000` | air-box; copy on `gb300Facility` | ≥ 0 |
-| `siteConstruction` | `$200,000` | air-box; copy on `gb300Facility` | ≥ 0 |
+| `containerCost` | air-box `$400,000` · GB300 `$0` | air-box; copy on `gb300Facility` | ≥ 0 |
+| `siteConstruction` | air-box `$200,000` · GB300 `$58,000,000` | air-box; copy on `gb300Facility` | ≥ 0 |
 | `networkOpexMo` | `$3,750` | air-box; copy on `gb300Facility` | ≥ 0 |
 | `omOpexMo` | `$2,500` | air-box; copy on `gb300Facility` | ≥ 0 |
 | `insurancePctRev` | `3%` | air-box; copy on `gb300Facility` | 0–10% |
 | `otherOpexPctRev` | `1%` | air-box; copy on `gb300Facility` | 0–10% |
 | `residualPct` | `10%` | per SKU | 0–30% |
-| `usefulLifeYrs` | `5` | air-box; copy on `gb300Facility` | 3–7 integer |
+| `usefulLifeYrs` | `5` | air-box; copy on `gb300Facility` | 5090 / Pro 6000 3–5 · GB300 3–10 |
 
 ### C — Not inputs
 
@@ -240,7 +222,7 @@ Also derived: revenue, each OpEx line, EBITDA, depreciation, EBIT, tax, NCF, per
 
 ### E — View toggles (not model inputs)
 
-- Top tab: `5090` | `pro6000` | `gb300` | `compare` | `research`
+- Top tab: `5090` | `pro6000` | `compare` | `gb300`
 - Depreciation follows `obbbaEnabled`, not a view toggle
 
 ---
@@ -252,7 +234,9 @@ File: `lib/roi/engine.ts`. Signature: `runModel(inputs) → { sku5090, skuPro600
 ### Must-match formulas (Excel)
 
 ```
-revenue     = totalGpus * gpuRentPerHr * hoursPerYear * utilization
+revenue     = billedUnits * gpuRentPerHr * hoursPerYear * utilization
+            // 5090 / Pro 6000: billedUnits = totalGpus
+            // GB300: billedUnits = totalServers (one rack = one server)
 electricity = totalServers * itLoadKw * pue * elecPerKwh * hoursPerYear
 network     = networkOpexMo * 12 * containerCount
 om          = omOpexMo * 12 * containerCount
@@ -382,19 +366,18 @@ Keep it boring. Time spent on custom CSS is wasted.
 - Components: `Tabs`, `Card`, `Input`, `Label`, `Slider`, `Switch`, `Select`, `Accordion`, `Table`, `Badge`, `Separator`, `Button`, `Tooltip`, `Chart`. If a widget is not in shadcn, use a table.
 - Default shadcn tokens only. `font-mono` on numbers. No new palette, no extra fonts, no gradients, no motion libraries.
 - UI copy = labels, units, footnotes. No paragraphs. No winner sentence.
-- Copy: US PM English. Excel English labels. No PPT Chinese titles.
+- Copy: default US PM English (Excel labels). `?lang=zh` Simplified labels. SKU names, OBBBA/PUE/IRR/NPV/CapEx/NCF, and USD stay English. No PPT Chinese titles.
 
 ---
 
 ## v1 non-goals
 
-Auth, saved accounts, live GPU-spot APIs, debt / leverage, PDF export, 50-state tax presets, utilization ramp, i18n / language switch, custom visual identity, animation, freight / customs / install, EcoHash fee line.
+Auth, saved accounts, live GPU-spot APIs, debt / leverage, PDF export, 50-state tax presets, utilization ramp, custom visual identity, animation, freight / customs / install, EcoHash fee line.
 
 ---
 
 ## Later
 
-- Language switch or `/zh` (translate UI + Research; engine stays the same)
 - Deploy-to-energize calendar / utilization ramp
 - Debt module
 - Live rental comps

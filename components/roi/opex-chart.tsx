@@ -13,16 +13,18 @@ import {
 import { usdK } from "@/lib/roi/format";
 import type { SkuResult } from "@/lib/roi/types";
 
-const config: ChartConfig = {
-  electricity: { label: "Electricity", color: "var(--chart-1)" },
-  network: { label: "Network", color: "var(--chart-2)" },
-  om: { label: "O&M", color: "var(--chart-3)" },
-  insurance: { label: "Insurance", color: "var(--chart-4)" },
-  propertyTax: { label: "Property tax", color: "var(--chart-5)" },
-  otherOpex: { label: "Other", color: "var(--muted-foreground)" },
-};
+import { useT } from "./locale";
 
 export function OpexChart({ result }: { result: SkuResult }) {
+  const { t } = useT();
+  const config: ChartConfig = {
+    electricity: { label: t("chartElectricity"), color: "var(--chart-1)" },
+    network: { label: t("chartNetwork"), color: "var(--chart-2)" },
+    om: { label: t("chartOm"), color: "var(--chart-3)" },
+    insurance: { label: t("chartInsurance"), color: "var(--chart-4)" },
+    propertyTax: { label: t("chartPropertyTax"), color: "var(--chart-5)" },
+    otherOpex: { label: t("chartOther"), color: "var(--muted-foreground)" },
+  };
   const data = result.years.map((y) => ({
     year: `Y${y.year}`,
     electricity: y.electricity,

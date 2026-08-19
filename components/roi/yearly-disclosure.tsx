@@ -20,6 +20,7 @@ import { usdParenK } from "@/lib/roi/format";
 import type { SkuResult } from "@/lib/roi/types";
 
 import { OpexChart } from "./opex-chart";
+import { useT } from "./locale";
 
 function HeadTip({ label, tip }: { label: string; tip: string }) {
   return (
@@ -43,63 +44,34 @@ function Money({ value }: { value: number | null }) {
   );
 }
 
-const HEADS: { label: string; tip: string }[] = [
-  { label: "Year", tip: "Calendar year. Y0 is the capex outlay. Y1–Yn are operating years." },
-  {
-    label: "Revenue",
-    tip: "GPU-hour rent × hours per year × utilization. Steps down only if price decay is on.",
-  },
-  {
-    label: "OpEx",
-    tip: "Electricity + network + O&M + insurance + property tax + other. Electricity follows IT × PUE × tariff.",
-  },
-  { label: "EBITDA", tip: "Revenue − OpEx. Cash operating profit before depreciation and tax." },
-  {
-    label: "Dep",
-    tip: "Depreciation this year. OBBBA on: 100% of depreciable basis (server capex × (1 − residual)) in Y1. OBBBA off: that basis split evenly over the useful life.",
-  },
-  {
-    label: "EBIT",
-    tip: "EBITDA − depreciation. A Y1 loss under OBBBA is the bonus creating NOL. Not a cash line.",
-  },
-  {
-    label: "Tax",
-    tip: "Cash tax this year. Combined federal + state on taxable income. OBBBA Y1 is often $0 if the bonus creates a loss.",
-  },
-  {
-    label: "NOL",
-    tip: "Unused tax loss carried forward. Later years may offset up to 80% of EBITDA while NOL remains.",
-  },
-  {
-    label: "NCF",
-    tip: "Operating net cash = EBITDA − tax. Residual is not in this column.",
-  },
-  {
-    label: "Residual",
-    tip: "Server exit cash in the final year only (server capex × residual %). Infra is not included.",
-  },
-  {
-    label: "Cash flow",
-    tip: "Y0 = −CapEx. Y1–Yn = NCF. Final year = NCF + residual.",
-  },
-  {
-    label: "Cumulative",
-    tip: "Undiscounted running total from Y0. OBBBA vs straight-line often match at year N if the Y1 bonus NOL is used up — same total tax, different timing. The OBBBA edge is NPV, IRR, and payback, not a larger ending pile.",
-  },
-];
-
 export function YearlyDisclosure({ result }: { result: SkuResult }) {
+  const { t } = useT();
+  const heads = [
+    { label: t("yearlyYear"), tip: t("yearlyYearTip") },
+    { label: t("yearlyRevenue"), tip: t("yearlyRevenueTip") },
+    { label: t("yearlyOpex"), tip: t("yearlyOpexTip") },
+    { label: t("yearlyEbitda"), tip: t("yearlyEbitdaTip") },
+    { label: t("yearlyDep"), tip: t("yearlyDepTip") },
+    { label: t("yearlyEbit"), tip: t("yearlyEbitTip") },
+    { label: t("yearlyTax"), tip: t("yearlyTaxTip") },
+    { label: t("yearlyNol"), tip: t("yearlyNolTip") },
+    { label: t("yearlyNcf"), tip: t("yearlyNcfTip") },
+    { label: t("yearlyResidual"), tip: t("yearlyResidualTip") },
+    { label: t("yearlyCashFlow"), tip: t("yearlyCashFlowTip") },
+    { label: t("yearlyCumulative"), tip: t("yearlyCumulativeTip") },
+  ];
+
   return (
     <Accordion defaultValue={["yearly"]}>
       <AccordionItem value="yearly">
-        <AccordionTrigger>Yearly P&L + cash flow</AccordionTrigger>
+        <AccordionTrigger>{t("yearlyTitle")}</AccordionTrigger>
         <AccordionContent>
           <div className="grid gap-4 pt-2">
             <OpexChart result={result} />
             <Table className="text-xs">
               <TableHeader>
                 <TableRow>
-                  {HEADS.map((h, i) => (
+                  {heads.map((h, i) => (
                     <TableHead
                       key={h.label}
                       className={i === 0 ? "px-1.5" : "px-1.5 text-right"}
@@ -142,7 +114,7 @@ export function YearlyDisclosure({ result }: { result: SkuResult }) {
                 ))}
               </TableBody>
               <TableCaption className="mt-3 text-left text-xs text-muted-foreground">
-                $000. ( ) = negative. Hover a header for the definition.
+                {t("yearlyCaption")}
               </TableCaption>
             </Table>
           </div>

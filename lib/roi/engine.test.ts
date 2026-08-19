@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import { DEFAULT_INPUTS, EXCEL_ELEC_PER_KWH, EXCEL_RENT } from "./defaults";
 import { runModel } from "./engine";
-import { chartCaption, usdK, usdParenK } from "./format";
-import { OPEX_PER_GPU_HR, PRICE_CHART } from "./listed-forecast";
-import { clampInputs } from "./url";
+import { chartCaption, usdK, usdParenK, years } from "./format";
+import { parseLocale } from "./i18n";
+import { breakevenMatrix, clearMatrixCache } from "./matrix";
+import { clampInputs, inputsFromSearchParams, parseTab, searchParamsFromState } from "./url";
 import type { ModelInputs } from "./types";
 
 function run(overrides: Partial<ModelInputs> = {}) {
@@ -48,9 +49,86 @@ describe("display format", () => {
     expect(caption).toContain("decay off");
   });
 
+  it("years and captions translate when locale is zh", () => {
+    expect(years(3.48, 2, "zh")).toContain("年");
+    const caption = chartCaption(DEFAULT_INPUTS, "RTX 5090", undefined, "zh");
+    expect(caption).toContain("OBBBA 开");
+    expect(caption).toContain("衰减关");
+    expect(caption).toContain("税 25.5%");
+  });
+
+  it("round-trips lang=zh and defaults to en", () => {
+    expect(parseLocale("zh")).toBe("zh");
+    expect(parseLocale("zh-CN")).toBe("zh");
+    expect(parseLocale(null)).toBe("en");
+    expect(searchParamsFromState("5090", DEFAULT_INPUTS).get("lang")).toBeNull();
+    expect(searchParamsFromState("5090", DEFAULT_INPUTS, "zh").get("lang")).toBe("zh");
+  });
+
+  it("drops legacy research and context tabs", () => {
+    expect(parseTab("research")).toBe("5090");
+    expect(parseTab("context")).toBe("5090");
+    expect(parseTab("compare")).toBe("compare");
+    expect(parseTab("gb300")).toBe("gb300");
+  });
+
   it("clamps site name to 80 characters", () => {
     const next = clampInputs({ ...DEFAULT_INPUTS, siteName: "x".repeat(200) });
     expect(next.siteName.length).toBe(80);
+  });
+
+  it("useful life caps at 5 for 5090 / Pro 6000 and 10 for GB300", () => {
+    const air = clampInputs({ ...DEFAULT_INPUTS, usefulLifeYrs: 10 });
+    expect(air.usefulLifeYrs).toBe(5);
+    const gb = clampInputs({
+      ...DEFAULT_INPUTS,
+      gb300Facility: { ...DEFAULT_INPUTS.gb300Facility, usefulLifeYrs: 15 },
+    });
+    expect(gb.gb300Facility.usefulLifeYrs).toBe(10);
+    expect(gb.usefulLifeYrs).toBe(5);
+
+    const { sku5090, skuGb300 } = runModel({
+      ...DEFAULT_INPUTS,
+      usefulLifeYrs: 5,
+      gb300Facility: { ...DEFAULT_INPUTS.gb300Facility, usefulLifeYrs: 10 },
+    });
+    expect(sku5090.years).toHaveLength(5);
+    expect(skuGb300.years).toHaveLength(10);
+  });
+
+  it("clamps 5090 rent at $50 and GB300 rent at $5000", () => {
+    const air = clampInputs({
+      ...DEFAULT_INPUTS,
+      sku5090: { ...DEFAULT_INPUTS.sku5090, gpuRentPerHr: 720 },
+    });
+    expect(air.sku5090.gpuRentPerHr).toBe(50);
+    const gb = clampInputs({
+      ...DEFAULT_INPUTS,
+      skuGb300: { ...DEFAULT_INPUTS.skuGb300, gpuRentPerHr: 9_999 },
+    });
+    expect(gb.skuGb300.gpuRentPerHr).toBe(5_000);
+  });
+
+  it("migrates legacy GB300 c_rent $/GPU-hr to $/server-hr", () => {
+    const legacy = inputsFromSearchParams(new URLSearchParams("c_rent=10"));
+    expect(legacy.skuGb300.gpuRentPerHr).toBe(720);
+    const already = inputsFromSearchParams(new URLSearchParams("c_rent=800"));
+    expect(already.skuGb300.gpuRentPerHr).toBe(800);
+    const marked = inputsFromSearchParams(new URLSearchParams("c_rent=50&c_ru=s"));
+    expect(marked.skuGb300.gpuRentPerHr).toBe(50);
+    const out = searchParamsFromState("gb300", {
+      ...DEFAULT_INPUTS,
+      skuGb300: { ...DEFAULT_INPUTS.skuGb300, gpuRentPerHr: 50 },
+    });
+    expect(out.get("c_rent")).toBe("50");
+    expect(out.get("c_ru")).toBe("s");
+  });
+
+  it("does not crash if gb300Facility is missing", () => {
+    const broken = { ...DEFAULT_INPUTS } as ModelInputs;
+    delete (broken as { gb300Facility?: unknown }).gb300Facility;
+    expect(() => runModel(broken)).not.toThrow();
+    expect(runModel(broken).skuGb300.totalGpus).toBe(1_728);
   });
 });
 
@@ -108,21 +186,6 @@ describe("ScenA golden values", () => {
   });
 });
 
-describe("Research listed GPU-hour chart", () => {
-  it("has no forecast hold and pins Reset OpEx per GPU-hr", () => {
-    expect(PRICE_CHART.map((row) => row.m)).toEqual([
-      "Aug 2025",
-      "May 2026",
-      "Jul 2026",
-      "Aug 2026",
-    ]);
-    expect(OPEX_PER_GPU_HR.sku5090).toBeCloseTo(0.1371, 4);
-    expect(OPEX_PER_GPU_HR.pro6000).toBeCloseTo(0.191, 4);
-    expect(PRICE_CHART[0]?.opex5090).toBe(OPEX_PER_GPU_HR.sku5090);
-    expect(PRICE_CHART[0]?.opexPro6000).toBe(OPEX_PER_GPU_HR.pro6000);
-  });
-});
-
 describe("GB300 NVL72", () => {
   it("is 24 racks × 72 GPUs and does not change 5090 / Pro 6000 topology", () => {
     const { sku5090, skuPro6000, skuGb300 } = runModel();
@@ -132,13 +195,27 @@ describe("GB300 NVL72", () => {
 
     expect(skuGb300.totalServers).toBe(24);
     expect(skuGb300.totalGpus).toBe(1_728);
-    expect(skuGb300.serverCapex).toBe(96_000_000);
-    expect(skuGb300.totalCapex).toBe(96_600_000);
+    expect(skuGb300.serverCapex).toBe(120_000_000);
+    expect(skuGb300.infraCapex).toBe(58_000_000);
+    expect(skuGb300.totalCapex).toBe(178_000_000);
     expect(skuGb300.itLoadTotalKw).toBe(3_360);
-    expect(skuGb300.residualCash).toBe(9_600_000);
+    expect(skuGb300.residualCash).toBe(12_000_000);
+    expect(DEFAULT_INPUTS.gb300Facility.containerCost).toBe(0);
+    expect(DEFAULT_INPUTS.gb300Facility.siteConstruction).toBe(58_000_000);
     expect(skuGb300.irr).not.toBeNull();
     expect(Number.isFinite(skuGb300.npv)).toBe(true);
     expect(skuGb300.cashFlows[1]).toBeGreaterThan(0);
+    expect(skuGb300.years[0]?.revenue).toBe(24 * 720 * 8760);
+  });
+
+  it("bills GB300 rent per rack, not per GPU", () => {
+    const base = runModel();
+    const fewerGpus = runModel({
+      ...DEFAULT_INPUTS,
+      skuGb300: { ...DEFAULT_INPUTS.skuGb300, gpusPerServer: 36 },
+    });
+    expect(fewerGpus.skuGb300.years[0]?.revenue).toBe(base.skuGb300.years[0]?.revenue);
+    expect(fewerGpus.skuGb300.totalGpus).toBe(864);
   });
 
   it("caption is NVL72 racks, not 35×8, and uses GB300 facility", () => {
@@ -177,7 +254,7 @@ describe("GB300 NVL72", () => {
     expect(air.sku5090.totalGpus).toBe(1_400);
     expect(air.skuGb300.combinedTax).toBeCloseTo(base.skuGb300.combinedTax, 6);
     expect(air.skuGb300.totalGpus).toBe(1_728);
-    expect(air.skuGb300.totalCapex).toBe(96_600_000);
+    expect(air.skuGb300.totalCapex).toBe(178_000_000);
     expect(air.skuGb300.effectiveKwh).toBeCloseTo(base.skuGb300.effectiveKwh, 6);
 
     const hallInputs = {
@@ -197,9 +274,27 @@ describe("GB300 NVL72", () => {
     expect(hall.sku5090.totalCapex).toBe(3_687_000);
     expect(hall.sku5090.effectiveKwh).toBeCloseTo(base.sku5090.effectiveKwh, 6);
     expect(hall.skuGb300.combinedTax).not.toBeCloseTo(base.skuGb300.combinedTax, 6);
-    expect(hall.skuGb300.infraCapex).toBe(1_200_000);
+    expect(hall.skuGb300.infraCapex).toBe(116_000_000);
     expect(hall.skuGb300.totalGpus).toBe(1_728);
     expect(chartCaption(hallInputs, "GB300", "gb300")).toContain("Dallas, TX");
     expect(chartCaption(hallInputs, "RTX 5090")).toContain("Atlanta, GA");
+  });
+});
+
+describe("breakeven matrix cache", () => {
+  it("reuses the grid when only utilization or decay changes", () => {
+    clearMatrixCache();
+    const a = breakevenMatrix(DEFAULT_INPUTS, "5090");
+    const b = breakevenMatrix(
+      {
+        ...DEFAULT_INPUTS,
+        priceErosionOn: true,
+        priceErosionRate: 0.1,
+        sku5090: { ...DEFAULT_INPUTS.sku5090, utilization: 0.8 },
+      },
+      "5090",
+    );
+    expect(b).toBe(a);
+    expect(a[0]?.[4]).not.toBeNull();
   });
 });

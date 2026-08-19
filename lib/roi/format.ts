@@ -1,4 +1,6 @@
 import { combinedTax } from "./finance";
+import { DEFAULT_GB300_FACILITY } from "./defaults";
+import { t, type Locale } from "./i18n";
 import type { ModelInputs, SkuId } from "./types";
 
 export function usd(value: number, digits = 0): string {
@@ -33,9 +35,9 @@ export function pct(value: number, digits = 2): string {
   return `${(value * 100).toFixed(digits)}%`;
 }
 
-export function years(value: number | null, digits = 2): string {
+export function years(value: number | null, digits = 2, locale: Locale = "en"): string {
   if (value == null) return "—";
-  return `${value.toFixed(digits)} yrs`;
+  return t(locale, "yrs", { value: value.toFixed(digits) });
 }
 
 export function monthLabel(value: number | null): string {
@@ -51,42 +53,54 @@ export function kwh(value: number): string {
   return `$${value.toFixed(4)}/kWh`;
 }
 
-export function extrasSummary(inputs: ModelInputs, skuId?: SkuId): string {
+export function extrasSummary(
+  inputs: ModelInputs,
+  skuId?: SkuId,
+  locale: Locale = "en",
+): string {
   if (skuId === "gb300") {
-    const f = inputs.gb300Facility;
+    const f = inputs.gb300Facility ?? DEFAULT_GB300_FACILITY;
     const site = f.siteName.trim() || "Atlanta, GA";
     const tax = combinedTax(f.federalTax, f.stateTax);
     const racks = inputs.skuGb300.rackCount ?? 24;
     return [
       site,
-      `tax ${pct(tax, 1)}`,
-      `${racks} racks`,
-      `${f.hallCount} hall${f.hallCount === 1 ? "" : "s"}`,
+      t(locale, "taxChip", { value: pct(tax, 1) }),
+      t(locale, "racksCount", { n: racks }),
+      t(locale, f.hallCount === 1 ? "hallCount" : "hallsCount", { n: f.hallCount }),
       `PUE ${f.pue.toFixed(2)}`,
-      `OBBBA ${f.obbbaEnabled ? "on" : "off"}`,
+      t(locale, f.obbbaEnabled ? "obbbaOn" : "obbbaOff"),
     ].join(" · ");
   }
   const site = inputs.siteName.trim() || "Atlanta, GA";
   const tax = combinedTax(inputs.federalTax, inputs.stateTax);
   return [
     site,
-    `tax ${pct(tax, 1)}`,
-    `${inputs.containerCount}×${inputs.serversPerContainer} servers`,
+    t(locale, "taxChip", { value: pct(tax, 1) }),
+    t(locale, "serversCount", {
+      a: inputs.containerCount,
+      b: inputs.serversPerContainer,
+    }),
     `PUE ${inputs.pue.toFixed(2)}`,
-    `OBBBA ${inputs.obbbaEnabled ? "on" : "off"}`,
+    t(locale, inputs.obbbaEnabled ? "obbbaOn" : "obbbaOff"),
   ].join(" · ");
 }
 
-export function chartCaption(inputs: ModelInputs, sku: string, skuId?: SkuId): string {
-  const decay = `decay ${inputs.priceErosionOn ? "on" : "off"}`;
+export function chartCaption(
+  inputs: ModelInputs,
+  sku: string,
+  skuId?: SkuId,
+  locale: Locale = "en",
+): string {
+  const decay = t(locale, inputs.priceErosionOn ? "decayOn" : "decayOffChip");
   if (skuId === "gb300") {
     return [
       sku,
       "NVL72",
       "Blackwell Ultra",
-      extrasSummary(inputs, "gb300"),
+      extrasSummary(inputs, "gb300", locale),
       decay,
     ].join(" · ");
   }
-  return `${sku} · ${extrasSummary(inputs)} · ${decay}`;
+  return `${sku} · ${extrasSummary(inputs, undefined, locale)} · ${decay}`;
 }

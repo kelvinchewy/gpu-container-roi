@@ -1,11 +1,11 @@
-import { DEFAULT_INPUTS, SKU_LABEL } from "./defaults";
+import { DEFAULT_GB300_FACILITY, DEFAULT_INPUTS, SKU_LABEL } from "./defaults";
 import { combinedTax, irr, npv, paybackYears } from "./finance";
 import type { Gb300Facility, ModelInputs, ModelResult, SkuId, SkuResult, YearRow } from "./types";
 import { skuState } from "./types";
 
 function facility(inputs: ModelInputs, skuId: SkuId) {
   if (skuId === "gb300") {
-    const f: Gb300Facility = inputs.gb300Facility;
+    const f: Gb300Facility = inputs.gb300Facility ?? DEFAULT_GB300_FACILITY;
     return {
       siteName: f.siteName,
       elecPerKwh: f.elecPerKwh,
@@ -69,8 +69,9 @@ function runSku(inputs: ModelInputs, skuId: SkuId): SkuResult {
   const residualCash = serverCapex * sku.residualPct;
   const slDep = n > 0 ? depreciableBasis / n : 0;
 
+  const billedUnits = skuId === "gb300" ? totalServers : totalGpus;
   const revenueY1 =
-    totalGpus * sku.gpuRentPerHr * f.hoursPerYear * sku.utilization;
+    billedUnits * sku.gpuRentPerHr * f.hoursPerYear * sku.utilization;
   const electricity =
     totalServers * sku.itLoadKw * f.pue * f.elecPerKwh * f.hoursPerYear;
   const network = f.networkOpexMo * 12 * f.scaleCount;

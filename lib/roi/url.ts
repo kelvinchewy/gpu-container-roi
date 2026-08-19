@@ -8,14 +8,19 @@ import {
 } from "./defaults";
 import { clamp } from "./finance";
 import { cloneBom, syncBomToPrice, bomSum } from "./sources";
-import type { Gb300Facility, ModelInputs, SkuInputs, TabId } from "./types";
+import type { Gb300Facility, ModelInputs, SkuId, SkuInputs, TabId } from "./types";
 import { TABS } from "./types";
+import { parseLocale, type Locale } from "./i18n";
 
-function clampInt(value: number, min: number, max: number): number {
+function clampInt(value: number, min: number, max = Number.POSITIVE_INFINITY): number {
   return Math.round(clamp(value, min, max));
 }
 
-function clampSku(sku: SkuInputs, fallbackIt: number): SkuInputs {
+function clampSku(
+  sku: SkuInputs,
+  fallbackIt: number,
+  rent: { min: number; max: number } = BOUNDS.gpuRentPerHr,
+): SkuInputs {
   const bom = (sku.bom ?? []).map((line) => ({
     ...line,
     qty: Math.max(0, line.qty),
@@ -24,7 +29,7 @@ function clampSku(sku: SkuInputs, fallbackIt: number): SkuInputs {
   const next: SkuInputs = {
     serverPrice: Math.max(bomSum(bom), sku.serverPrice, 0.01),
     bom,
-    gpuRentPerHr: clamp(sku.gpuRentPerHr, BOUNDS.gpuRentPerHr.min, BOUNDS.gpuRentPerHr.max),
+    gpuRentPerHr: clamp(sku.gpuRentPerHr, rent.min, rent.max),
     utilization: clamp(sku.utilization, BOUNDS.utilization.min, BOUNDS.utilization.max),
     itLoadKw: clamp(sku.itLoadKw, BOUNDS.itLoadKw.min, BOUNDS.itLoadKw.max) || fallbackIt,
     residualPct: clamp(sku.residualPct, BOUNDS.residualPct.min, BOUNDS.residualPct.max),
@@ -45,7 +50,7 @@ function clampSku(sku: SkuInputs, fallbackIt: number): SkuInputs {
 }
 
 function clampGb300Sku(sku: SkuInputs): SkuInputs {
-  const next = clampSku(sku, DEFAULT_SKU_GB300.itLoadKw);
+  const next = clampSku(sku, DEFAULT_SKU_GB300.itLoadKw, BOUNDS.gb300RentPerHr);
   next.rackCount = clampInt(
     next.rackCount ?? DEFAULT_SKU_GB300.rackCount ?? 24,
     BOUNDS.rackCount.min,
@@ -73,7 +78,11 @@ function clampFacility(f: Gb300Facility): Gb300Facility {
     obbbaEnabled: Boolean(f.obbbaEnabled),
     pue: clamp(f.pue, BOUNDS.pue.min, BOUNDS.pue.max),
     hoursPerYear: clampInt(f.hoursPerYear, BOUNDS.hoursPerYear.min, BOUNDS.hoursPerYear.max),
-    usefulLifeYrs: clampInt(f.usefulLifeYrs, BOUNDS.usefulLifeYrs.min, BOUNDS.usefulLifeYrs.max),
+    usefulLifeYrs: clampInt(
+      f.usefulLifeYrs,
+      BOUNDS.gb300UsefulLifeYrs.min,
+      BOUNDS.gb300UsefulLifeYrs.max,
+    ),
     hallCount: clampInt(f.hallCount, BOUNDS.hallCount.min, BOUNDS.hallCount.max),
     containerCost: Math.max(0, f.containerCost),
     siteConstruction: Math.max(0, f.siteConstruction),
@@ -211,10 +220,11 @@ function parseBool(raw: string | null): boolean | undefined {
 }
 
 export function parseTab(raw: string | null): TabId {
-  if (raw === "context") return "research";
   if (raw && (TABS as readonly string[]).includes(raw)) return raw as TabId;
   return "5090";
 }
+
+export { parseLocale };
 
 export function inputsFromSearchParams(params: URLSearchParams): ModelInputs {
   const next: ModelInputs = {
@@ -269,6 +279,15 @@ export function inputsFromSearchParams(params: URLSearchParams): ModelInputs {
   const cGp = parseNum(params.get("c_gp"));
   if (cGp != null) next.skuGb300.gpusPerServer = cGp;
 
+  // Old GB300 URLs stored $/GPU-hr (Reset $10). Now billed $/server-hr (Reset $720).
+  // New writes set c_ru=s. Missing flag + c_rent ≤ 50 still means GPU-hr.
+  const cRent = parseNum(params.get("c_rent"));
+  const serverHr = params.get("c_ru") === "s";
+  if (cRent != null && cRent <= 50 && !serverHr) {
+    const gpus = next.skuGb300.gpusPerServer ?? DEFAULT_SKU_GB300.gpusPerServer ?? 72;
+    next.skuGb300.gpuRentPerHr = cRent * gpus;
+  }
+
   if (parseNum(params.get("a_sp")) != null) {
     next.sku5090.bom = syncBomToPrice(next.sku5090.bom, next.sku5090.serverPrice);
   }
@@ -286,10 +305,15 @@ function close(a: number, b: number) {
   return Math.abs(a - b) < 1e-9;
 }
 
-export function searchParamsFromState(tab: TabId, inputs: ModelInputs): URLSearchParams {
+export function searchParamsFromState(
+  tab: TabId,
+  inputs: ModelInputs,
+  locale: Locale = "en",
+): URLSearchParams {
   const d = DEFAULT_INPUTS;
   const params = new URLSearchParams();
   if (tab !== "5090") params.set("tab", tab);
+  if (locale !== "en") params.set("lang", locale);
   const site = inputs.siteName.trim();
   if (site && site !== d.siteName) params.set("site", site);
   if (inputs.priceErosionOn !== d.priceErosionOn) params.set("pe", inputs.priceErosionOn ? "1" : "0");
@@ -325,6 +349,7 @@ export function searchParamsFromState(tab: TabId, inputs: ModelInputs): URLSearc
     }
     if (!close(inputs.skuGb300[field], d.skuGb300[field])) {
       params.set(`c_${key}`, String(inputs.skuGb300[field]));
+      if (field === "gpuRentPerHr") params.set("c_ru", "s");
     }
   }
 

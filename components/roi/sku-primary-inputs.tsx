@@ -8,7 +8,8 @@ import { usd } from "@/lib/roi/format";
 import { bomSum, syncBomToPrice } from "@/lib/roi/sources";
 import type { SkuId, SkuInputs } from "@/lib/roi/types";
 
-import { Field, NumberInput, PercentInput, useFieldId } from "./fields";
+import { Field, FieldRow, MoneyInput, NumberInput, PercentInput, useFieldId } from "./fields";
+import { useT } from "./locale";
 import { RentSourceDialog, ServerBomDialog } from "./source-dialogs";
 
 function ServerPriceButton({ price, onOpen }: { price: number; onOpen: () => void }) {
@@ -27,6 +28,10 @@ function ServerPriceButton({ price, onOpen }: { price: number; onOpen: () => voi
   );
 }
 
+function SectionLabel({ children }: { children: string }) {
+  return <div className="text-xs font-medium text-muted-foreground">{children}</div>;
+}
+
 export function SkuPrimaryInputs({
   skuId,
   sku,
@@ -38,91 +43,115 @@ export function SkuPrimaryInputs({
 }) {
   const [bomOpen, setBomOpen] = useState(false);
   const [rentOpen, setRentOpen] = useState(false);
+  const { t } = useT();
   const isRack = skuId === "gb300";
+  const gpus = sku.gpusPerServer ?? 72;
 
   return (
-    <div className={isRack ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-4" : "grid gap-4 sm:grid-cols-3"}>
-      {isRack ? (
-        <Field emphasis label="Rack price">
-          <NumberInput
-            value={sku.serverPrice}
-            min={0.01}
-            step={1000}
-            onChange={(serverPrice) =>
-              onChange({
-                serverPrice,
-                bom: syncBomToPrice(sku.bom, serverPrice),
-              })
+    <div className="grid gap-6">
+      <div className="grid gap-3">
+        <SectionLabel>{isRack ? t("soldUnit") : t("server")}</SectionLabel>
+        {isRack ? (
+          <FieldRow className="sm:grid-cols-3">
+            <Field emphasis label={t("rackPrice")}>
+              <MoneyInput
+                value={sku.serverPrice}
+                min={0.01}
+                onChange={(serverPrice) =>
+                  onChange({
+                    serverPrice,
+                    bom: syncBomToPrice(sku.bom, serverPrice),
+                  })
+                }
+              />
+            </Field>
+            <Field emphasis label={t("racks")}>
+              <NumberInput
+                value={sku.rackCount ?? 24}
+                min={BOUNDS.rackCount.min}
+                max={BOUNDS.rackCount.max}
+                step={1}
+                onChange={(rackCount) => onChange({ rackCount })}
+              />
+            </Field>
+            <Field emphasis label={t("gpusPerRack")}>
+              <NumberInput
+                value={gpus}
+                min={BOUNDS.rackGpus.min}
+                max={BOUNDS.rackGpus.max}
+                step={1}
+                onChange={(gpusPerServer) => onChange({ gpusPerServer })}
+              />
+            </Field>
+          </FieldRow>
+        ) : (
+          <Field
+            emphasis
+            label={t("serverPrice")}
+            extra={
+              <Button type="button" variant="outline" size="xs" onClick={() => setBomOpen(true)}>
+                {t("editBom")}
+              </Button>
             }
-          />
-        </Field>
-      ) : (
-        <Field
-          emphasis
-          label="Server price"
-          extra={
-            <Button type="button" variant="outline" size="xs" onClick={() => setBomOpen(true)}>
-              Edit BOM
-            </Button>
-          }
-        >
-          <ServerPriceButton price={sku.serverPrice} onOpen={() => setBomOpen(true)} />
-          <ServerBomDialog
-            skuId={skuId}
-            lines={sku.bom}
-            open={bomOpen}
-            onOpenChange={setBomOpen}
-            onSave={(bom) => onChange({ bom, serverPrice: bomSum(bom) })}
-          />
-        </Field>
-      )}
-      <Field
-        emphasis
-        label="GPU rent ($/GPU-hr)"
-        extra={
-          isRack ? null : (
-            <Button type="button" variant="outline" size="xs" onClick={() => setRentOpen(true)}>
-              Source
-            </Button>
-          )
-        }
-      >
-        <NumberInput
-          value={sku.gpuRentPerHr}
-          min={BOUNDS.gpuRentPerHr.min}
-          max={BOUNDS.gpuRentPerHr.max}
-          step={0.01}
-          onChange={(gpuRentPerHr) => onChange({ gpuRentPerHr })}
-        />
-        {skuId === "gb300" ? null : (
-          <RentSourceDialog
-            skuId={skuId}
-            modelRent={sku.gpuRentPerHr}
-            open={rentOpen}
-            onOpenChange={setRentOpen}
-          />
+          >
+            <ServerPriceButton price={sku.serverPrice} onOpen={() => setBomOpen(true)} />
+            <ServerBomDialog
+              skuId={skuId}
+              lines={sku.bom}
+              open={bomOpen}
+              onOpenChange={setBomOpen}
+              onSave={(bom) => onChange({ bom, serverPrice: bomSum(bom) })}
+            />
+          </Field>
         )}
-      </Field>
-      <Field emphasis label="Utilization (%)">
-        <PercentInput
-          value={sku.utilization}
-          min={BOUNDS.utilization.min * 100}
-          max={BOUNDS.utilization.max * 100}
-          step={1}
-          onChange={(utilization) => onChange({ utilization })}
-        />
-      </Field>
-      {isRack ? (
-        <Field emphasis label="Racks">
-          <NumberInput
-            value={sku.rackCount ?? 24}
-            min={BOUNDS.rackCount.min}
-            max={BOUNDS.rackCount.max}
-            step={1}
-            onChange={(rackCount) => onChange({ rackCount })}
-          />
-        </Field>
-      ) : null}
+      </div>
+
+      <div className="grid gap-3">
+        <SectionLabel>{t("rent")}</SectionLabel>
+        <FieldRow className={isRack ? "sm:grid-cols-3" : "sm:grid-cols-2"}>
+          <Field
+            emphasis
+            label={isRack ? t("serverRent") : t("gpuRent")}
+            caption={
+              isRack && gpus > 0
+                ? t("impliedGpuHr", { value: (sku.gpuRentPerHr / gpus).toFixed(2) })
+                : undefined
+            }
+            extra={
+              isRack ? undefined : (
+                <Button type="button" variant="outline" size="xs" onClick={() => setRentOpen(true)}>
+                  {t("source")}
+                </Button>
+              )
+            }
+          >
+            <NumberInput
+              value={sku.gpuRentPerHr}
+              min={isRack ? BOUNDS.gb300RentPerHr.min : BOUNDS.gpuRentPerHr.min}
+              max={isRack ? BOUNDS.gb300RentPerHr.max : BOUNDS.gpuRentPerHr.max}
+              step={0.01}
+              onChange={(gpuRentPerHr) => onChange({ gpuRentPerHr })}
+            />
+            {isRack ? null : (
+              <RentSourceDialog
+                skuId={skuId}
+                modelRent={sku.gpuRentPerHr}
+                open={rentOpen}
+                onOpenChange={setRentOpen}
+              />
+            )}
+          </Field>
+          <Field emphasis label={t("utilization")}>
+            <PercentInput
+              value={sku.utilization}
+              min={BOUNDS.utilization.min * 100}
+              max={BOUNDS.utilization.max * 100}
+              step={1}
+              onChange={(utilization) => onChange({ utilization })}
+            />
+          </Field>
+        </FieldRow>
+      </div>
     </div>
   );
 }

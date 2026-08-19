@@ -7,27 +7,28 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { BOUNDS } from "@/lib/roi/defaults";
+import { BOUNDS, DEFAULT_GB300_FACILITY } from "@/lib/roi/defaults";
 import { combinedTax } from "@/lib/roi/finance";
 import { extrasSummary, pct } from "@/lib/roi/format";
 import type { Gb300Facility, ModelInputs, SkuId, SkuInputs } from "@/lib/roi/types";
 
-import { Field, NumberInput, PercentInput, SwitchField } from "./fields";
+import { Field, MoneyInput, NumberInput, PercentInput, SwitchField, TextInput } from "./fields";
+import { useT } from "./locale";
 
 function SkuExtras({
   label,
   sku,
   onChange,
-  itLabel = "IT load (kW/server)",
-  showGpusPerRack = false,
+  itLabel,
+  itStep = 0.1,
 }: {
   label: string;
   sku: SkuInputs;
   onChange: (patch: Partial<SkuInputs>) => void;
-  itLabel?: string;
-  showGpusPerRack?: boolean;
+  itLabel: string;
+  itStep?: number;
 }) {
+  const { t } = useT();
   return (
     <div className="grid gap-3">
       <div className="text-xs font-medium">{label}</div>
@@ -36,22 +37,11 @@ function SkuExtras({
           value={sku.itLoadKw}
           min={BOUNDS.itLoadKw.min}
           max={BOUNDS.itLoadKw.max}
-          step={showGpusPerRack ? 1 : 0.1}
+          step={itStep}
           onChange={(itLoadKw) => onChange({ itLoadKw })}
         />
       </Field>
-      {showGpusPerRack ? (
-        <Field label="GPUs / rack">
-          <NumberInput
-            value={sku.gpusPerServer ?? 72}
-            min={BOUNDS.rackGpus.min}
-            max={BOUNDS.rackGpus.max}
-            step={1}
-            onChange={(gpusPerServer) => onChange({ gpusPerServer })}
-          />
-        </Field>
-      ) : null}
-      <Field label="Residual %">
+      <Field label={t("residualPct")}>
         <PercentInput
           value={sku.residualPct}
           min={BOUNDS.residualPct.min * 100}
@@ -78,31 +68,32 @@ export function AdvancedAccordion({
   onSkuChange: (skuId: SkuId, patch: Partial<SkuInputs>) => void;
 }) {
   const tax = combinedTax(inputs.federalTax, inputs.stateTax);
+  const { t, locale } = useT();
 
   return (
     <Accordion>
       <AccordionItem value="advanced">
         <AccordionTrigger className="hover:no-underline">
           <span className="grid gap-0.5 pr-4 text-left">
-            <span>Site, tax, topology</span>
+            <span>{t("siteTaxTopo")}</span>
             <span className="text-sm font-normal text-muted-foreground">
-              {extrasSummary(inputs)}
+              {extrasSummary(inputs, undefined, locale)}
             </span>
           </span>
         </AccordionTrigger>
         <AccordionContent>
           <div className="grid gap-6 pt-2">
             <div className="grid gap-3">
-              <SectionLabel>Shared · 5090 / Pro 6000</SectionLabel>
+              <SectionLabel>{t("sharedAir")}</SectionLabel>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <Field label="Site">
-                  <Input
-                    className="h-8"
+                <Field label={t("site")}>
+                  <TextInput
                     value={inputs.siteName}
-                    onChange={(e) => onChange({ siteName: e.target.value })}
+                    maxLength={80}
+                    onChange={(siteName) => onChange({ siteName })}
                   />
                 </Field>
-                <Field label="Federal tax">
+                <Field label={t("federalTax")}>
                   <PercentInput
                     value={inputs.federalTax}
                     min={BOUNDS.federalTax.min * 100}
@@ -111,7 +102,7 @@ export function AdvancedAccordion({
                     onChange={(federalTax) => onChange({ federalTax })}
                   />
                 </Field>
-                <Field label="State tax">
+                <Field label={t("stateTax")}>
                   <PercentInput
                     value={inputs.stateTax}
                     min={BOUNDS.stateTax.min * 100}
@@ -120,7 +111,7 @@ export function AdvancedAccordion({
                     onChange={(stateTax) => onChange({ stateTax })}
                   />
                 </Field>
-                <Field label="Property tax (% of capex)">
+                <Field label={t("propertyTaxPct")}>
                   <PercentInput
                     value={inputs.propertyTaxPctCapex}
                     min={BOUNDS.propertyTaxPctCapex.min * 100}
@@ -132,20 +123,20 @@ export function AdvancedAccordion({
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <SwitchField
-                  label="OBBBA (100% Y1 bonus)"
+                  label={t("obbba")}
                   checked={inputs.obbbaEnabled}
                   onCheckedChange={(checked) => onChange({ obbbaEnabled: Boolean(checked) })}
                 />
                 <Badge variant="secondary" className="font-mono">
-                  Combined tax {pct(tax, 4)}
+                  {t("combinedTax", { value: pct(tax, 4) })}
                 </Badge>
               </div>
             </div>
 
             <div className="grid gap-3">
-              <SectionLabel>Topology (5090 / Pro 6000)</SectionLabel>
+              <SectionLabel>{t("topoAir")}</SectionLabel>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <Field label="Containers">
+                <Field label={t("containers")}>
                   <NumberInput
                     value={inputs.containerCount}
                     min={BOUNDS.containerCount.min}
@@ -154,7 +145,7 @@ export function AdvancedAccordion({
                     onChange={(containerCount) => onChange({ containerCount })}
                   />
                 </Field>
-                <Field label="Servers / container">
+                <Field label={t("serversPerContainer")}>
                   <NumberInput
                     value={inputs.serversPerContainer}
                     min={BOUNDS.serversPerContainer.min}
@@ -163,7 +154,7 @@ export function AdvancedAccordion({
                     onChange={(serversPerContainer) => onChange({ serversPerContainer })}
                   />
                 </Field>
-                <Field label="GPUs / server">
+                <Field label={t("gpusPerServer")}>
                   <NumberInput
                     value={inputs.gpusPerServer}
                     min={BOUNDS.gpusPerServer.min}
@@ -172,7 +163,7 @@ export function AdvancedAccordion({
                     onChange={(gpusPerServer) => onChange({ gpusPerServer })}
                   />
                 </Field>
-                <Field label="PUE">
+                <Field label={t("pue")}>
                   <NumberInput
                     value={inputs.pue}
                     min={BOUNDS.pue.min}
@@ -181,7 +172,7 @@ export function AdvancedAccordion({
                     onChange={(pue) => onChange({ pue })}
                   />
                 </Field>
-                <Field label="Hours / year">
+                <Field label={t("hoursPerYear")}>
                   <NumberInput
                     value={inputs.hoursPerYear}
                     min={BOUNDS.hoursPerYear.min}
@@ -190,7 +181,7 @@ export function AdvancedAccordion({
                     onChange={(hoursPerYear) => onChange({ hoursPerYear })}
                   />
                 </Field>
-                <Field label="Useful life (yrs)">
+                <Field label={t("usefulLife")}>
                   <NumberInput
                     value={inputs.usefulLifeYrs}
                     min={BOUNDS.usefulLifeYrs.min}
@@ -203,41 +194,41 @@ export function AdvancedAccordion({
             </div>
 
             <div className="grid gap-3">
-              <SectionLabel>Per GPU</SectionLabel>
+              <SectionLabel>{t("perGpu")}</SectionLabel>
               <div className="grid gap-4 sm:grid-cols-2">
                 <SkuExtras
                   label="RTX 5090"
                   sku={inputs.sku5090}
                   onChange={(patch) => onSkuChange("5090", patch)}
+                  itLabel={t("itLoadServer")}
                 />
                 <SkuExtras
                   label="Pro 6000"
                   sku={inputs.skuPro6000}
                   onChange={(patch) => onSkuChange("pro6000", patch)}
+                  itLabel={t("itLoadServer")}
                 />
               </div>
             </div>
 
             <div className="grid gap-3">
-              <SectionLabel>Capex and opex rates (5090 / Pro 6000)</SectionLabel>
+              <SectionLabel>{t("capexOpexAir")}</SectionLabel>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <Field label="Container cost">
-                  <NumberInput
+                <Field label={t("containerCost")}>
+                  <MoneyInput
                     value={inputs.containerCost}
                     min={0}
-                    step={1000}
                     onChange={(containerCost) => onChange({ containerCost })}
                   />
                 </Field>
-                <Field label="Site construction">
-                  <NumberInput
+                <Field label={t("siteConstruction")}>
+                  <MoneyInput
                     value={inputs.siteConstruction}
                     min={0}
-                    step={1000}
                     onChange={(siteConstruction) => onChange({ siteConstruction })}
                   />
                 </Field>
-                <Field label="Network opex ($/mo)">
+                <Field label={t("networkOpex")}>
                   <NumberInput
                     value={inputs.networkOpexMo}
                     min={0}
@@ -245,7 +236,7 @@ export function AdvancedAccordion({
                     onChange={(networkOpexMo) => onChange({ networkOpexMo })}
                   />
                 </Field>
-                <Field label="O&M opex ($/mo)">
+                <Field label={t("omOpex")}>
                   <NumberInput
                     value={inputs.omOpexMo}
                     min={0}
@@ -253,7 +244,7 @@ export function AdvancedAccordion({
                     onChange={(omOpexMo) => onChange({ omOpexMo })}
                   />
                 </Field>
-                <Field label="Insurance (% of rev)">
+                <Field label={t("insurancePct")}>
                   <PercentInput
                     value={inputs.insurancePctRev}
                     min={BOUNDS.insurancePctRev.min * 100}
@@ -262,7 +253,7 @@ export function AdvancedAccordion({
                     onChange={(insurancePctRev) => onChange({ insurancePctRev })}
                   />
                 </Field>
-                <Field label="Other opex (% of rev)">
+                <Field label={t("otherOpexPct")}>
                   <PercentInput
                     value={inputs.otherOpexPctRev}
                     min={BOUNDS.otherOpexPctRev.min * 100}
@@ -289,33 +280,34 @@ export function Gb300Accordion({
   onFacilityChange: (patch: Partial<Gb300Facility>) => void;
   onSkuChange: (skuId: SkuId, patch: Partial<SkuInputs>) => void;
 }) {
-  const f = inputs.gb300Facility;
+  const f = inputs.gb300Facility ?? DEFAULT_GB300_FACILITY;
   const tax = combinedTax(f.federalTax, f.stateTax);
+  const { t, locale } = useT();
 
   return (
     <Accordion>
       <AccordionItem value="gb300-facility">
         <AccordionTrigger className="hover:no-underline">
           <span className="grid gap-0.5 pr-4 text-left">
-            <span>Site, tax, topology</span>
+            <span>{t("siteTaxTopo")}</span>
             <span className="text-sm font-normal text-muted-foreground">
-              {extrasSummary(inputs, "gb300")}
+              {extrasSummary(inputs, "gb300", locale)}
             </span>
           </span>
         </AccordionTrigger>
         <AccordionContent>
           <div className="grid gap-6 pt-2">
             <div className="grid gap-3">
-              <SectionLabel>Site and tax · GB300 only</SectionLabel>
+              <SectionLabel>{t("siteTaxGb300")}</SectionLabel>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <Field label="Site">
-                  <Input
-                    className="h-8"
+                <Field label={t("site")}>
+                  <TextInput
                     value={f.siteName}
-                    onChange={(e) => onFacilityChange({ siteName: e.target.value })}
+                    maxLength={80}
+                    onChange={(siteName) => onFacilityChange({ siteName })}
                   />
                 </Field>
-                <Field label="Federal tax">
+                <Field label={t("federalTax")}>
                   <PercentInput
                     value={f.federalTax}
                     min={BOUNDS.federalTax.min * 100}
@@ -324,7 +316,7 @@ export function Gb300Accordion({
                     onChange={(federalTax) => onFacilityChange({ federalTax })}
                   />
                 </Field>
-                <Field label="State tax">
+                <Field label={t("stateTax")}>
                   <PercentInput
                     value={f.stateTax}
                     min={BOUNDS.stateTax.min * 100}
@@ -333,7 +325,7 @@ export function Gb300Accordion({
                     onChange={(stateTax) => onFacilityChange({ stateTax })}
                   />
                 </Field>
-                <Field label="Property tax (% of capex)">
+                <Field label={t("propertyTaxPct")}>
                   <PercentInput
                     value={f.propertyTaxPctCapex}
                     min={BOUNDS.propertyTaxPctCapex.min * 100}
@@ -345,22 +337,22 @@ export function Gb300Accordion({
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <SwitchField
-                  label="OBBBA (100% Y1 bonus)"
+                  label={t("obbba")}
                   checked={f.obbbaEnabled}
                   onCheckedChange={(checked) =>
                     onFacilityChange({ obbbaEnabled: Boolean(checked) })
                   }
                 />
                 <Badge variant="secondary" className="font-mono">
-                  Combined tax {pct(tax, 4)}
+                  {t("combinedTax", { value: pct(tax, 4) })}
                 </Badge>
               </div>
             </div>
 
             <div className="grid gap-3">
-              <SectionLabel>Topology · NVL72</SectionLabel>
+              <SectionLabel>{t("topoNvl72")}</SectionLabel>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <Field label="Halls">
+                <Field label={t("halls")}>
                   <NumberInput
                     value={f.hallCount}
                     min={BOUNDS.hallCount.min}
@@ -369,7 +361,7 @@ export function Gb300Accordion({
                     onChange={(hallCount) => onFacilityChange({ hallCount })}
                   />
                 </Field>
-                <Field label="PUE">
+                <Field label={t("pue")}>
                   <NumberInput
                     value={f.pue}
                     min={BOUNDS.pue.min}
@@ -378,7 +370,7 @@ export function Gb300Accordion({
                     onChange={(pue) => onFacilityChange({ pue })}
                   />
                 </Field>
-                <Field label="Hours / year">
+                <Field label={t("hoursPerYear")}>
                   <NumberInput
                     value={f.hoursPerYear}
                     min={BOUNDS.hoursPerYear.min}
@@ -387,11 +379,11 @@ export function Gb300Accordion({
                     onChange={(hoursPerYear) => onFacilityChange({ hoursPerYear })}
                   />
                 </Field>
-                <Field label="Useful life (yrs)">
+                <Field label={t("usefulLife")}>
                   <NumberInput
                     value={f.usefulLifeYrs}
-                    min={BOUNDS.usefulLifeYrs.min}
-                    max={BOUNDS.usefulLifeYrs.max}
+                    min={BOUNDS.gb300UsefulLifeYrs.min}
+                    max={BOUNDS.gb300UsefulLifeYrs.max}
                     step={1}
                     onChange={(usefulLifeYrs) => onFacilityChange({ usefulLifeYrs })}
                   />
@@ -400,36 +392,34 @@ export function Gb300Accordion({
             </div>
 
             <div className="grid gap-3">
-              <SectionLabel>Per rack</SectionLabel>
+              <SectionLabel>{t("perRack")}</SectionLabel>
               <SkuExtras
                 label="GB300 NVL72"
                 sku={inputs.skuGb300}
                 onChange={(patch) => onSkuChange("gb300", patch)}
-                itLabel="IT load (kW/rack)"
-                showGpusPerRack
+                itLabel={t("itLoadRack")}
+                itStep={1}
               />
             </div>
 
             <div className="grid gap-3">
-              <SectionLabel>Capex and opex rates · GB300 only</SectionLabel>
+              <SectionLabel>{t("capexOpexGb300")}</SectionLabel>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <Field label="Container cost">
-                  <NumberInput
+                <Field label={t("containerCost")}>
+                  <MoneyInput
                     value={f.containerCost}
                     min={0}
-                    step={1000}
                     onChange={(containerCost) => onFacilityChange({ containerCost })}
                   />
                 </Field>
-                <Field label="Site construction">
-                  <NumberInput
+                <Field label={t("siteConstruction")}>
+                  <MoneyInput
                     value={f.siteConstruction}
                     min={0}
-                    step={1000}
                     onChange={(siteConstruction) => onFacilityChange({ siteConstruction })}
                   />
                 </Field>
-                <Field label="Network opex ($/mo)">
+                <Field label={t("networkOpex")}>
                   <NumberInput
                     value={f.networkOpexMo}
                     min={0}
@@ -437,7 +427,7 @@ export function Gb300Accordion({
                     onChange={(networkOpexMo) => onFacilityChange({ networkOpexMo })}
                   />
                 </Field>
-                <Field label="O&M opex ($/mo)">
+                <Field label={t("omOpex")}>
                   <NumberInput
                     value={f.omOpexMo}
                     min={0}
@@ -445,7 +435,7 @@ export function Gb300Accordion({
                     onChange={(omOpexMo) => onFacilityChange({ omOpexMo })}
                   />
                 </Field>
-                <Field label="Insurance (% of rev)">
+                <Field label={t("insurancePct")}>
                   <PercentInput
                     value={f.insurancePctRev}
                     min={BOUNDS.insurancePctRev.min * 100}
@@ -454,7 +444,7 @@ export function Gb300Accordion({
                     onChange={(insurancePctRev) => onFacilityChange({ insurancePctRev })}
                   />
                 </Field>
-                <Field label="Other opex (% of rev)">
+                <Field label={t("otherOpexPct")}>
                   <PercentInput
                     value={f.otherOpexPctRev}
                     min={BOUNDS.otherOpexPctRev.min * 100}

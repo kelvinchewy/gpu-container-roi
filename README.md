@@ -4,13 +4,13 @@ Underwriting tool for a containerized AI data center.
 
 **Read [AGENTS.md](AGENTS.md) first.** That file is the contract. Readable twin: [Notion GPU Container ROI](https://app.notion.com/p/hashing/5090-6000-3be1a6d49e8f801d9d11ed4b65ac29cc). Git wins if they disagree.
 
-Five tabs: **RTX 5090** · **Pro 6000** · **GB300** · **Compare** · **Research**.
+Four tabs: **RTX 5090** · **Pro 6000** · **Compare** · **GB300**.
 
 ## Integrity
 
-The public repo is **code and golden tests only**. The Excel workbook and PPT stay local and are gitignored. `lib/roi/engine.ts` is the calculator. `npm test` pins Excel Atlanta ScenA cached values (CapEx, IRR, NPV, payback). Research `$` are listed comps with public URLs; they do not feed the engine.
+The public repo is **code and golden tests only**. The Excel workbook and PPT stay local and are gitignored. `lib/roi/engine.ts` is the calculator. `npm test` pins Excel Atlanta ScenA cached values (CapEx, IRR, NPV, payback).
 
-BOM is editable on the **RTX 5090** and **Pro 6000** tabs only. GB300 is a single rack price. Compare has a numeric server price. Research has no BOM.
+BOM is editable on the **RTX 5090** and **Pro 6000** tabs only. GB300 is a single rack price. Compare has a numeric server price.
 
 ## Run
 
@@ -20,6 +20,6 @@ npm test
 npm run dev
 ```
 
-Open `/` (default tab RTX 5090). `?tab=pro6000` · `?tab=gb300` · `?tab=compare` · `?tab=research`.
+Open `/` (default tab RTX 5090). `?tab=pro6000` · `?tab=compare` · `?tab=gb300`. `?lang=zh` for Simplified Chinese.
 
 Next.js · TypeScript · Tailwind v4 · shadcn/ui · Recharts. Client-side engine, no auth.

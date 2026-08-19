@@ -26,6 +26,7 @@ import { CITE, RENT_SOURCE, bomSum, cloneBom, type BomLine } from "@/lib/roi/sou
 import type { SkuId } from "@/lib/roi/types";
 
 import { NumberInput } from "./fields";
+import { useT } from "./locale";
 
 export function ServerBomDialog({
   skuId,
@@ -66,6 +67,7 @@ function BomEditor({
   onSave: (lines: BomLine[]) => void;
 }) {
   const [draft, setDraft] = useState<BomLine[]>(() => cloneBom(lines));
+  const { t } = useT();
 
   function patch(key: string, field: "qty" | "unitPrice", value: number) {
     setDraft((prev) =>
@@ -78,19 +80,16 @@ function BomEditor({
   return (
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>{SKU_LABEL[skuId]} server BOM</DialogTitle>
-        <DialogDescription>
-          Other is the plug so the total matches Excel server price at Reset
-          ($88,200 RTX 5090 · $191,800 Pro 6000). Save writes that total into the engine.
-        </DialogDescription>
+        <DialogTitle>{t("bomTitle", { sku: SKU_LABEL[skuId] })}</DialogTitle>
+        <DialogDescription>{t("bomDesc")}</DialogDescription>
       </DialogHeader>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Item</TableHead>
-            <TableHead className="text-right">Qty</TableHead>
-            <TableHead className="text-right">Unit $</TableHead>
-            <TableHead className="text-right">Subtotal</TableHead>
+            <TableHead>{t("bomItem")}</TableHead>
+            <TableHead className="text-right">{t("bomQty")}</TableHead>
+            <TableHead className="text-right">{t("bomUnit")}</TableHead>
+            <TableHead className="text-right">{t("bomSubtotal")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -119,7 +118,7 @@ function BomEditor({
             </TableRow>
           ))}
           <TableRow>
-            <TableCell>Total</TableCell>
+            <TableCell>{t("bomTotal")}</TableCell>
             <TableCell />
             <TableCell />
             <TableCell className="text-right font-mono">{usd(total)}</TableCell>
@@ -128,7 +127,7 @@ function BomEditor({
       </Table>
       <DialogFooter>
         <Button variant="outline" onClick={() => onOpenChange(false)}>
-          Cancel
+          {t("cancel")}
         </Button>
         <Button
           onClick={() => {
@@ -136,7 +135,7 @@ function BomEditor({
             onOpenChange(false);
           }}
         >
-          Save
+          {t("save")}
         </Button>
       </DialogFooter>
     </DialogContent>
@@ -155,41 +154,40 @@ export function RentSourceDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const row = RENT_SOURCE[skuId];
+  const { t } = useT();
   return (
     <Dialog open={open} onOpenChange={(next) => onOpenChange(Boolean(next))}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{SKU_LABEL[skuId]} GPU rent</DialogTitle>
-          <DialogDescription>
-            Listed comps, 15 Aug 2026. Model rent is the calculator; these rows do not write it.
-          </DialogDescription>
+          <DialogTitle>{t("rentTitle", { sku: SKU_LABEL[skuId] })}</DialogTitle>
+          <DialogDescription>{t("rentDesc")}</DialogDescription>
         </DialogHeader>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Series</TableHead>
-              <TableHead className="text-right">$/GPU-hr</TableHead>
+              <TableHead>{t("rentSeries")}</TableHead>
+              <TableHead className="text-right">{t("rentGpuHr")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             <TableRow>
-              <TableCell>Model</TableCell>
+              <TableCell>{t("rentModel")}</TableCell>
               <TableCell className="text-right font-mono">${modelRent.toFixed(2)}</TableCell>
             </TableRow>
             <TableRow>
-              <TableCell>EcoHash</TableCell>
+              <TableCell>{t("rentEcohash")}</TableCell>
               <TableCell className="text-right font-mono">{row.ecohash}</TableCell>
             </TableRow>
             <TableRow>
-              <TableCell>Market low</TableCell>
+              <TableCell>{t("rentLow")}</TableCell>
               <TableCell className="text-right font-mono">{row.low}</TableCell>
             </TableRow>
             <TableRow>
-              <TableCell>Market mid</TableCell>
+              <TableCell>{t("rentMid")}</TableCell>
               <TableCell className="text-right font-mono">{row.mid}</TableCell>
             </TableRow>
             <TableRow>
-              <TableCell>Market high</TableCell>
+              <TableCell>{t("rentHigh")}</TableCell>
               <TableCell className="text-right font-mono">{row.high}</TableCell>
             </TableRow>
           </TableBody>
