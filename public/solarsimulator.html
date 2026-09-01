@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Kadina EMS</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.205 0 0);
+  --card: oklch(1 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.45 0 0);
+  --primary: oklch(0.40 0.12 255);
+  --primary-foreground: oklch(0.99 0 0);
+  --border: oklch(0.90 0 0);
+  --input: oklch(0.90 0 0);
+  --ring: oklch(0.40 0.12 255);
+  --destructive: oklch(0.55 0.19 25);
+  --gain: oklch(0.45 0.11 155);
+  --chart-1: oklch(0.42 0.12 255);
+  --chart-2: oklch(0.52 0.08 195);
+  --chart-3: oklch(0.50 0.08 295);
+  --chart-4: oklch(0.58 0.08 85);
+  --radius: 0.5rem;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-family: Geist, ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+body { background: var(--background); color: var(--foreground); font-size: 13px; }
+.font-mono, .kpi-val, .dispatch-table td, .t-num, .t-price { font-family: "Geist Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+
+.app { display: grid; grid-template-columns: 300px 1fr; grid-template-rows: auto 1fr; height: 100vh; }
+.chrome { grid-column: 1 / -1; display: grid; gap: 16px; padding: 24px 24px 16px; border-bottom: 1px solid var(--border); }
+.chrome-top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.chrome-top h1 { font-size: 20px; font-weight: 500; letter-spacing: -0.02em; min-width: 0; }
+.chrome-top p { color: var(--muted-foreground); font-size: 12px; }
+.chrome-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.btn { height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--foreground); font: inherit; font-size: 13px; cursor: pointer; }
+.btn:hover { background: var(--muted); }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px; }
+.kpi { background: var(--card); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent); }
+.kpi-lbl { font-size: 12px; color: var(--muted-foreground); }
+.kpi-val { font-size: 13px; font-weight: 500; }
+.kpi-sub { font-size: 11px; color: var(--muted-foreground); }
+.kpi.gain .kpi-val { color: var(--gain); }
+.kpi.alert .kpi-val { color: var(--destructive); }
+
+.sidebar { background: var(--background); border-right: 1px solid var(--border); padding: 16px 20px 32px; overflow-y: auto; }
+.main { padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; }
+.section-label { font-size: 12px; font-weight: 500; color: var(--muted-foreground); margin: 16px 0 8px; }
+.section-label:first-child { margin-top: 0; }
+
+.slider-row { margin-bottom: 12px; }
+.slider-row label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; color: var(--muted-foreground); font-size: 12px; gap: 8px; }
+.slider-row label span { color: var(--foreground); font-family: "Geist Mono", ui-monospace, monospace; font-size: 12px; font-weight: 500; min-width: 52px; text-align: right; }
+input[type=range] { width: 100%; height: 4px; -webkit-appearance: none; appearance: none; background: var(--muted); border-radius: 999px; outline: none; cursor: pointer; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 1px solid var(--ring); cursor: pointer; }
+input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 1px solid var(--ring); cursor: pointer; }
+
+.card { background: var(--card); border-radius: 12px; padding: 16px; box-shadow: 0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent); }
+.card-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+.card-desc { font-size: 12px; color: var(--muted-foreground); margin-bottom: 12px; }
+.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.chart-wrap { position: relative; height: 180px; }
+.chart-wrap.tall { height: 240px; }
+.window-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted-foreground); }
+.legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+
+.dispatch-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.dispatch-table th { color: var(--muted-foreground); font-weight: 500; padding: 8px; border-bottom: 1px solid var(--border); text-align: right; }
+.dispatch-table th:first-child { text-align: left; }
+.dispatch-table td { padding: 8px; border-bottom: 1px solid var(--border); text-align: right; color: var(--foreground); }
+.dispatch-table td:first-child { text-align: left; }
+.dispatch-table tr:hover td { background: var(--muted); }
+.dispatch-table tr:last-child td { border-bottom: 0; }
+
+.tag { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+.tag-peak { background: color-mix(in oklab, var(--destructive) 12%, transparent); color: var(--destructive); }
+.tag-sponge { background: color-mix(in oklab, var(--gain) 14%, transparent); color: var(--gain); }
+.tag-shoulder { background: color-mix(in oklab, var(--chart-4) 22%, transparent); color: oklch(0.42 0.08 85); }
+.tag-offpeak { background: color-mix(in oklab, var(--chart-1) 14%, transparent); color: var(--chart-1); }
+.optimal-badge { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background: color-mix(in oklab, var(--gain) 14%, transparent); color: var(--gain); }
+
+.sep { height: 1px; background: var(--border); margin: 16px 0; }
+.note { font-size: 12px; color: var(--muted-foreground); margin-top: 8px; line-height: 1.5; }
+.hint { font-size: 11px; color: var(--muted-foreground); line-height: 1.5; margin-bottom: 8px; }
+.load-line { font-size: 12px; color: var(--muted-foreground); margin-bottom: 8px; }
+
+.t-num, .t-price { width: 52px; height: 32px; background: transparent; border: 1px solid var(--input); border-radius: 8px; color: var(--foreground); font-size: 12px; font-weight: 500; text-align: center; outline: none; }
+.t-num:focus, .t-price:focus { border-color: var(--ring); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent); }
+input[type=number]::-webkit-inner-spin-button { opacity: .4; }
+
+.warn-banner { background: color-mix(in oklab, var(--destructive) 10%, transparent); color: var(--destructive); padding: 10px 24px; font-size: 13px; font-weight: 500; display: none; align-items: center; gap: 8px; border-bottom: 1px solid color-mix(in oklab, var(--destructive) 25%, transparent); }
+.warn-banner.show { display: flex; }
+.kpi.unmet-hot { box-shadow: 0 0 0 1px color-mix(in oklab, var(--destructive) 35%, transparent); }
+
+.season-select { width: 100%; height: 32px; padding: 0 8px; border: 1px solid var(--input); border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; font-size: 12px; margin-bottom: 8px; }
+.tariff-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.tariff-table th { text-align: left; padding: 6px 4px 8px; color: var(--muted-foreground); font-weight: 500; border-bottom: 1px solid var(--border); }
+.tariff-table td { padding: 8px 4px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.tariff-table tr:last-child td { border-bottom: 0; }
+.tariff-action { color: var(--muted-foreground); font-size: 11px; line-height: 1.4; }
+
+details.fold { margin: 0 0 12px; }
+details.fold > summary { cursor: pointer; font-size: 12px; color: var(--muted-foreground); list-style: none; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::after { content: " ▸"; }
+details.fold[open] > summary::after { content: " ▾"; }
+details.fold .fold-body { margin-top: 8px; font-size: 12px; color: var(--muted-foreground); line-height: 1.55; }
+
+@media (max-width: 960px) {
+  .app { grid-template-columns: 1fr; }
+  .sidebar { max-height: none; border-right: 0; border-bottom: 1px solid var(--border); }
+  .charts-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="warn-banner" id="unmet-banner"><span id="unmet-text"></span></div>
+<div class="app">
+<div class="chrome">
+  <div class="chrome-top">
+    <div>
+      <h1>Kadina EMS</h1>
+      <p>SAPN TOU · 4.95 MW solar · 5 MW / 10 MWh BESS · South Australia</p>
+    </div>
+    <div class="chrome-actions">
+      <button type="button" class="btn" id="btn-reset">Reset</button>
+    </div>
+  </div>
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-lbl">综合电价 $/kWh</div>
+      <div class="kpi-val" id="k-blend">—</div>
+      <div class="kpi-sub" id="k-blend-vs">vs 基准 —</div>
+    </div>
+    <div class="kpi gain">
+      <div class="kpi-lbl">年节省电费 $</div>
+      <div class="kpi-val" id="k-saving">—</div>
+      <div class="kpi-sub" id="k-saving-pct">节省 —%</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl">日均电费 $</div>
+      <div class="kpi-val" id="k-daily">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl">年度电费 $</div>
+      <div class="kpi-val" id="k-annual">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl">光伏覆盖率</div>
+      <div class="kpi-val" id="k-solar">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl">高峰电网峰值</div>
+      <div class="kpi-val" id="k-peak-import">—</div>
+      <div class="kpi-sub">高峰最大电网进口</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl">高峰本地供电量</div>
+      <div class="kpi-val" id="k-peak-avoid">—</div>
+      <div class="kpi-sub">solar+BESS替代电网</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl">BESS日循环次数</div>
+      <div class="kpi-val" id="k-cycles">—</div>
+    </div>
+    <div class="kpi" id="k-unmet-tile">
+      <div class="kpi-lbl">未满足负荷 MW</div>
+      <div class="kpi-val" id="k-unmet">0.00</div>
+      <div class="kpi-sub">超出SAPN进口上限的缺口</div>
+    </div>
+  </div>
+</div>
+
+<div class="sidebar">
+  <div class="section-label">AIDC</div>
+  <div class="slider-row"><label>IT负载 (MW)<span id="v-aidc">3.0</span></label><input type="range" id="s-aidc" min="0.5" max="5" step="0.1" value="3.0"></div>
+  <div class="slider-row"><label>PUE<span id="v-pue">1.20</span></label><input type="range" id="s-pue" min="1.05" max="1.6" step="0.05" value="1.20"></div>
+  <div class="load-line" id="total-load-display"></div>
+
+  <div class="section-label">光伏</div>
+  <select class="season-select" id="s-season">
+    <option value="summer">夏季典型晴天（日照~14h）</option>
+    <option value="equinox">春/秋分典型晴天（日照~13h）</option>
+    <option value="winter">冬季典型晴天（日照~10h）</option>
+  </select>
+  <div class="hint">图表/调度表按所选季节日显示。年度电费与年节省为夏/春秋分/冬三季等权重混合估算，不是单一晴天×365。</div>
+  <div class="slider-row"><label>光伏峰值 (MW AC)<span id="v-solar">4.95</span></label><input type="range" id="s-solar" min="1" max="5" step="0.05" value="4.95"></div>
+  <div class="slider-row"><label title="晴天当日出力折减系数：铭牌峰值×当日曲线(0~1)×本系数=实际交流出力。涵盖逆变器损耗、正午限幅、积灰、温度降额等——不是光伏行业常说的『年容量系数』(年均出力/铭牌，通常20-28%)，后者已含日夜/季节变化，不要重复套用，否则会把出力算得过低。">容量系数 (晴天=1.0)<span id="v-cf">0.85</span></label><input type="range" id="s-cf" min="0.3" max="1.0" step="0.05" value="0.85"></div>
+
+  <div class="section-label">BESS</div>
+  <div class="slider-row"><label>BESS容量 (MWh)<span id="v-bcap">10.0</span></label><input type="range" id="s-bcap" min="4" max="20" step="1" value="10"></div>
+  <div class="slider-row"><label>最大功率 (MW)<span id="v-bpow">5.0</span></label><input type="range" id="s-bpow" min="1" max="8" step="0.5" value="5"></div>
+  <div class="slider-row"><label>SOC最小值 (%)<span id="v-socmin">10</span></label><input type="range" id="s-socmin" min="5" max="30" step="5" value="10"></div>
+  <div class="slider-row"><label>SOC最大值 (%)<span id="v-socmax">90</span></label><input type="range" id="s-socmax" min="70" max="100" step="5" value="90"></div>
+
+  <div class="section-label">电网</div>
+  <div class="slider-row"><label>SAPN进口上限 (MW)<span id="v-glim">5.0</span></label><input type="range" id="s-glim" min="1" max="5" step="0.5" value="5"></div>
+  <div class="slider-row"><label title="光伏多余电量卖回电网的收入——记在光伏/BESS资产方(SPV)账上，不冲抵AIDC的电费账单。仅供参考/展示外送电量的经济价值。">光伏上网电价 (FIT，不计入AIDC账单)<span id="v-fit">0.05</span></label><input type="range" id="s-fit" min="0" max="0.15" step="0.01" value="0.05"></div>
+
+  <div class="section-label">场内 PPA</div>
+  <div class="slider-row"><label title="假设AIDC与场内光伏+BESS资产分属不同主体：AIDC按此PPA价格向资产方购买场内直供的光伏电量+电池放电量(不区分电池里原本是光伏充的还是电网充的)；电网进口仍按SAPN分时电价单独计费。多余电量卖给电网的收入不冲抵AIDC账单(见上方FIT说明)。">场内PPA电价 ($/kWh)<span id="v-ppa">0.070</span></label><input type="range" id="s-ppa" min="0" max="0.15" step="0.005" value="0.07"></div>
+  <div class="slider-row"><label title="负电价/超低谷时段(电网价<PPA价)，电池充满后光伏仍有余量、顺其自然直供AIDC负载的那部分电量——这时资产方的替代选择是以负电价卖给电网(倒贴钱)或弃光(零收入)，所以理论上愿意接受远低于正常PPA价的折扣价卖给AIDC，双方都比默认选项划算。仅适用于这一细分场景，不影响肩峰/高峰的正常PPA价，也不影响该时段电网直供部分(仍按电网负电价计费)。">负电价时段光伏折扣直供价 ($/kWh)<span id="v-ppa-neg">0.035</span></label><input type="range" id="s-ppa-neg" min="0" max="0.07" step="0.005" value="0.035"></div>
+  <details class="fold">
+    <summary>PPA 计价说明</summary>
+    <div class="fold-body">默认视角：光伏+BESS资产由独立主体持有，按PPA价格把场内直供电量+电池放电量卖给AIDC；电网进口部分仍按下方SAPN分时电价单独计费。设为$0可退回同一主体、场内电免费的旧视角。折扣价滑块默认为PPA价的一半，仅生效于负电价窗口内「电池已满、光伏自然溢出供负载」这一具体场景——现实中这类折扣需要双方另行约定，模型里当作可调假设，不代表已有合同条款。</div>
+  </details>
+
+  <div class="section-label">SAPN 分时电价</div>
+  <table class="tariff-table" id="tariff-table">
+    <thead>
+      <tr>
+        <th>时段</th>
+        <th>开始</th>
+        <th>结束</th>
+        <th>$/kWh</th>
+        <th>EMS动作</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="tariff-row" data-id="offpeak">
+        <td><span class="tag tag-offpeak">深夜</span></td>
+        <td style="text-align:center"><input class="t-num" id="t-op-s" type="number" min="0" max="23" value="21"></td>
+        <td style="text-align:center"><input class="t-num" id="t-op-e" type="number" min="0" max="23" value="7"></td>
+        <td style="text-align:center"><input class="t-price" id="t-op-p" type="number" min="-0.1" max="0.5" step="0.001" value="0.092"></td>
+        <td class="tariff-action">可靠性充电（不比价）：电池慢充至90% SOC，为肩峰放电做准备，成本由光伏/BESS资产方承担，不计入AIDC账单</td>
+      </tr>
+      <tr class="tariff-row" data-id="shoulder">
+        <td><span class="tag tag-shoulder">肩峰</span></td>
+        <td style="text-align:center"><input class="t-num" id="t-sh-s" type="number" min="0" max="23" value="7"></td>
+        <td style="text-align:center"><input class="t-num" id="t-sh-e" type="number" min="0" max="23" value="10"></td>
+        <td style="text-align:center"><input class="t-price" id="t-sh-p" type="number" min="-0.1" max="0.5" step="0.001" value="0.138"></td>
+        <td class="tariff-action">本时段电价高于PPA价：优先光伏/电池供电避免买贵电，电网补缺口</td>
+      </tr>
+      <tr class="tariff-row" data-id="sponge">
+        <td><span class="tag tag-sponge">超低谷</span></td>
+        <td style="text-align:center"><input class="t-num" id="t-sp-s" type="number" min="0" max="23" value="10"></td>
+        <td style="text-align:center"><input class="t-num" id="t-sp-e" type="number" min="0" max="23" value="16"></td>
+        <td style="text-align:center"><input class="t-price" id="t-sp-p" type="number" min="-0.1" max="0.5" step="0.001" value="-0.018" title="按AEMO最新一期(2026年Q1，2026年4月发布)数据：南澳白天(9-17点)负/零电价占比已达67%的时段(Q4 2025一度高见88%，Q1 2025同期66.7%)，NEM整体负值区间均价约-$17.7/MWh(Q1 2025约-$35.4/MWh、Q4 2025约-$19.4/MWh)——负电价越来越频繁，但单次负得没那么深。窗口10-16点是跨三季的保守估算(冬季光伏出力高的时段本身就集中在10-15点附近，夏季/春秋分实际能到9-17点，此处未按季节细分，取中间偏保守值)，价格取-$0.018/kWh代表性估算，均可自行调整。"></td>
+        <td class="tariff-action">本时段电价低于PPA价：负荷改由电网直供，光伏全部拿去充电池/外送，不走PPA计费，充满备高峰用</td>
+      </tr>
+      <tr class="tariff-row" data-id="peak">
+        <td><span class="tag tag-peak">高峰</span></td>
+        <td style="text-align:center"><input class="t-num" id="t-pk-s" type="number" min="0" max="23" value="16"></td>
+        <td style="text-align:center"><input class="t-num" id="t-pk-e" type="number" min="0" max="23" value="21"></td>
+        <td style="text-align:center"><input class="t-price" id="t-pk-p" type="number" min="-0.1" max="0.5" step="0.001" value="0.244"></td>
+        <td class="tariff-action">本时段电价远高于PPA价：太阳能优先+电池补缺口，电网兜底</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="sep"></div>
+  <details class="fold">
+    <summary>调度规则与来源</summary>
+    <div class="fold-body">比价式调度 + 深夜可靠性充电 + 负电价折扣直供：肩峰/超低谷/高峰三段每小时比较电网分时电价 vs 场内PPA电价，谁便宜谁供负荷。深夜段单独例外：不参与比价，电池固定慢充到90% SOC。超低谷时段若电池已充满、光伏仍有余量顺其自然直供负载，这部分改按「负电价时段光伏折扣直供价」计费。开始/结束填整点小时（0–23）。深夜段跨午夜(21→07)自动识别。负电价可填负数。<br><br>来源: SAPN / Amber Energy AU · 2024（时段与高峰/肩峰/深夜电价）；超低谷负电价参考 AEMO Quarterly Energy Dynamics Q1 2026。电价为4段静态简化模型，非分钟级浮动价。三季光伏曲线为示意性估算，非实测数据。负电价折扣价为可调假设，不代表已谈成的合同条款。</div>
+  </details>
+</div>
+
+<div class="main">
+  <div class="card">
+    <div class="card-title">24小时功率流 (MW)</div>
+    <div class="card-desc">比价式调度。超低谷电网直供、光伏充电池；肩峰/高峰光伏+电池优先。</div>
+    <details class="fold">
+      <summary>调度与计价</summary>
+      <div class="fold-body">肩峰/超低谷/高峰每小时比较电网分时电价与场内PPA电价，谁便宜谁供负荷。默认只有超低谷(10-16点)电网价低于PPA价。深夜(21-7点)电池固定慢充到90% SOC，为肩峰放电做准备——这段充电成本由光伏/BESS资产方承担，不计入AIDC账单。场内光伏直供+电池放电按场内PPA电价计费（仅限电网价≥PPA价的时段）；电网进口按分时电价计费；卖给电网的多余电量收入不计入AIDC账单。超低谷时段电池已满、光伏仍溢出直供负载的部分，改按负电价时段光伏折扣直供价计费。</div>
+    </details>
+    <div class="chart-wrap tall"><canvas id="cPower"></canvas></div>
+    <div class="window-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:oklch(0.58 0.08 85)"></div>光伏消纳</div>
+      <div class="legend-item"><div class="legend-dot" style="background:oklch(0.45 0.11 155)"></div>BESS放电</div>
+      <div class="legend-item"><div class="legend-dot" style="background:oklch(0.42 0.12 255)"></div>电网进口</div>
+      <div class="legend-item"><div class="legend-dot" style="background:oklch(0.50 0.08 295)"></div>BESS充电</div>
+      <div class="legend-item"><div style="width:18px;height:2px;background:oklch(0.55 0.19 25);margin-top:1px"></div>总负载</div>
+      <div class="legend-item"><div class="legend-dot" style="background:color-mix(in oklab, oklch(0.55 0.19 25) 45%, transparent)"></div>高峰</div>
+      <div class="legend-item"><div class="legend-dot" style="background:color-mix(in oklab, oklch(0.58 0.08 85) 50%, transparent)"></div>肩峰</div>
+      <div class="legend-item"><div class="legend-dot" style="background:color-mix(in oklab, oklch(0.45 0.11 155) 50%, transparent)"></div>超低谷</div>
+      <div class="legend-item"><div class="legend-dot" style="background:color-mix(in oklab, oklch(0.42 0.12 255) 45%, transparent)"></div>深夜</div>
+    </div>
+  </div>
+
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-title">BESS 荷电状态 (MWh)</div>
+      <div class="chart-wrap"><canvas id="cSOC"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">每小时电网成本 ($/hr)</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="cCost"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">综合电价 vs IT负载</div>
+    <div id="optimal-hint" class="card-desc"></div>
+    <div class="chart-wrap"><canvas id="cSweep"></canvas></div>
+    <div class="note">保持其余参数不变，扫描0.5–5MW IT负载下的综合电价（当前所选季节日）。当前设置用 ◆ 标注。综合电价$/kWh会随IT负载变小被固定的光伏/BESS资产摊薄拉低，此曲线因此总是偏向更小的IT负载，不作为容量决策依据。</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">24小时 EMS 调度明细</div>
+    <div style="overflow-x:auto"><table class="dispatch-table" id="dtable">
+      <thead><tr>
+        <th>时段</th><th>电价窗口</th><th>光伏(MW)</th><th>BESS动作</th>
+        <th>电网进口(MW)</th><th>SOC(MWh)</th><th>$/hr</th>
+      </tr></thead>
+      <tbody id="dtbody"></tbody>
+    </table></div>
+  </div>
+</div>
+</div>
+
+<script>
+// ─── Solar profiles: Kadina 33.5°S, illustrative typical clear-sky days per season
+// NOTE: these are hand-built illustrative shapes (day-length + irradiance curve), not
+// measured BOM/NASA POWER irradiance data. Good enough to see seasonal swing; replace
+// with real TMY/satellite data before using this for a bankable feasibility study.
+const SOLAR_PROFILES = {
+  summer: [ // ~Dec/Jan, sunrise ~05:00, sunset ~19:30
+    0,0,0,0,0,0.01,0.06,0.15,0.31,0.49,0.67,0.82,
+    0.92,0.98,1.00,0.95,0.84,0.67,0.44,0.20,0.05,0.01,0,0
+  ],
+  equinox: [ // ~Mar/Sep, sunrise ~06:00, sunset ~18:00
+    0,0,0,0,0,0,0.02,0.15,0.35,0.55,0.72,0.88,
+    0.97,1.00,0.93,0.78,0.58,0.33,0.10,0.01,0,0,0,0
+  ],
+  winter: [ // ~Jun/Jul, sunrise ~07:20, sunset ~17:10, shorter day + lower sun angle
+    0,0,0,0,0,0,0,0.04,0.18,0.40,0.62,0.80,
+    0.94,1.00,0.90,0.68,0.40,0.15,0.02,0,0,0,0,0
+  ],
+};
+const SEASON_LABELS = {summer:'夏季', equinox:'春/秋分', winter:'冬季'};
+function getSeason(){
+  const el=document.getElementById('s-season');
+  return el ? el.value : 'summer';
+}
+const HOURS = Array.from({length:24},(_,i)=>i);
+const HLABELS = HOURS.map(h=>`${String(h).padStart(2,'0')}:00`);
+
+// ─── Tariff window for each hour (dynamic from user inputs)
+function getTariffWindows(){
+  const g=id=>parseInt(document.getElementById(id).value,10);
+  const gp=id=>parseFloat(document.getElementById(id).value);
+  return [
+    {id:'shoulder', s:g('t-sh-s'), e:g('t-sh-e'), p:gp('t-sh-p')},
+    {id:'sponge',   s:g('t-sp-s'), e:g('t-sp-e'), p:gp('t-sp-p')},
+    {id:'peak',     s:g('t-pk-s'), e:g('t-pk-e'), p:gp('t-pk-p')},
+    {id:'offpeak',  s:g('t-op-s'), e:g('t-op-e'), p:gp('t-op-p')},
+  ];
+}
+function getWindow(h, T){
+  for(const w of T){
+    if(w.id==='offpeak') continue; // fallback
+    // normal window (no midnight wrap)
+    if(w.s < w.e){ if(h>=w.s && h<w.e) return w.id; }
+    else          { if(h>=w.s || h<w.e) return w.id; } // midnight wrap
+  }
+  // offpeak window (may wrap midnight)
+  const op=T.find(w=>w.id==='offpeak');
+  if(op.s < op.e){ return (h>=op.s && h<op.e) ? 'offpeak' : 'offpeak'; }
+  else            { return (h>=op.s || h<op.e) ? 'offpeak' : 'offpeak'; }
+}
+function getPrice(h, P, T){
+  const w = getWindow(h, T);
+  return T.find(x=>x.id===w)?.p ?? P.offpeak;
+}
+const WINDOW_COLORS={
+  peak:     'oklch(0.55 0.19 25 / 0.08)',
+  shoulder: 'oklch(0.58 0.08 85 / 0.10)',
+  sponge:   'oklch(0.45 0.11 155 / 0.08)',
+  offpeak:  'oklch(0.42 0.12 255 / 0.07)',
+};
+
+// ─── EMS Simulation (rule-based dispatch, runs 3 days to stabilize)
+// `solarProfile` defaults to the summer shape for backward compatibility, but callers
+// should pass SOLAR_PROFILES[season] explicitly.
+function simulate(P, T, solarProfile){
+  if(!T) T=getTariffWindows();
+  if(!solarProfile) solarProfile=SOLAR_PROFILES.summer;
+  const aidc   = P.aidc_it * P.pue;
+  const socMin = P.bcap * P.socmin/100;
+  const socMax = P.bcap * P.socmax/100;
+  let soc      = (socMin+socMax)/2;
+  let results  = [];
+
+  for(let day=0;day<3;day++){
+    results=[];
+    for(let h=0;h<24;h++){
+      const win   = getWindow(h, T);
+      const price = getPrice(h, P, T);
+      const solar = P.solar_peak * solarProfile[h] * P.cf;
+      let bCharge=0, bDischarge=0;
+
+      // Cost-minimizing dispatch: compare this hour's grid TOU price against the flat
+      // on-site PPA rate and let whichever is cheaper for AIDC serve the load. Driven by
+      // the actual price comparison, not a hardcoded window label — so it stays correct if
+      // the tariff table is ever edited such that, say, shoulder also dips below the PPA
+      // rate. With today's defaults this only flips in the sponge window (negative price),
+      // which is exactly the case that prompted this fix (2026-08-27).
+      //
+      // ONE explicit exception, carved out at Vincent's request (2026-08-27): overnight
+      // (offpeak) the solar/BESS asset owner charges the battery up to socMax regardless of
+      // whether $0.092 (offpeak) vs $0.07 (PPA) pencils out for them — a reliability
+      // commitment so the battery is full and ready before the morning shoulder ramp, mirroring
+      // the tool's original day-cycle design. This costs AIDC nothing either way: grid-funded
+      // charging was already excluded from AIDC's bill (see gridToLoad/onsite split below) —
+      // the asset owner simply eats a small loss on this leg of their own economics, which
+      // doesn't change what AIDC pays. Every other window still runs the plain price
+      // comparison above.
+      if(win === 'offpeak'){
+        bCharge = Math.min(P.bpow * 0.6, socMax - soc, Math.max(0, P.glim - aidc + solar));
+      } else if(price < P.ppa){
+        // GRID CHEAPER (normally the negative-price sponge window): let the grid serve the
+        // load directly (AIDC pays/earns the TOU rate on its own consumption), and push local
+        // solar — plus any spare grid import headroom — into charging the battery instead of
+        // routing it through the load, where it would otherwise cost AIDC the PPA rate for no
+        // reason when the grid is simultaneously paying AIDC to take power.
+        const gridForLoad = Math.min(aidc, P.glim);
+        const remainingHeadroom = Math.max(0, P.glim - gridForLoad);
+        bCharge = Math.min(P.bpow, socMax - soc, solar + remainingHeadroom);
+      } else {
+        // ON-SITE CHEAPER (PPA rate beats this hour's grid price — shoulder/peak by default):
+        // serve the load locally first — solar, then battery discharge for the remainder — and
+        // only fall back to grid for whatever's left. Any solar surplus beyond the load still
+        // tops up the battery for free; it doesn't cost AIDC anything to do so.
+        const deficit = Math.max(0, aidc - solar);
+        bDischarge = Math.min(P.bpow, deficit, soc - socMin);
+        const surplus = Math.max(0, solar - aidc);
+        if(surplus > 0 && soc < socMax){
+          bCharge = Math.min(surplus, P.bpow, socMax - soc);
+        }
+      }
+
+      // Grid import balance
+      let gridImport = aidc + bCharge - solar - bDischarge;
+      if(gridImport > P.glim){
+        const excess = gridImport - P.glim;
+        bCharge = Math.max(0, bCharge - excess);
+        gridImport = P.glim;
+      }
+      const solarExport = Math.max(0, solar - aidc - bCharge + bDischarge);
+      const actualGridImport = Math.max(0, aidc + bCharge - solar - bDischarge);
+      const clampedGrid = Math.min(actualGridImport, P.glim);
+      // UNMET LOAD: demand physically exceeding what solar+BESS+grid(capped at glim) can
+      // supply this hour. Previously this was silently swallowed by the min() above and
+      // never surfaced anywhere in the UI — a facility sized past this point would look
+      // "fine" on every chart while actually experiencing a real shortfall/blackout risk.
+      const unmet = Math.max(0, actualGridImport - P.glim);
+
+      // SOC update
+      soc = Math.max(socMin, Math.min(socMax, soc + bCharge - bDischarge));
+
+      // Billing attribution — how much of the load AIDC's meter shows as served by grid vs
+      // by on-site supply (solar + BESS discharge), so each MWh is billed exactly once. This
+      // is derived from the ACTUAL post-clamp physical flows (clampedGrid, bDischarge), not
+      // from which branch "intended" to serve the load — a negative-price hour with a genuine
+      // solar surplus over the load (e.g. midday, battery already full) can still end up with
+      // zero net grid import despite the "grid should serve load" intent: there's no import
+      // happening at all, so the load is necessarily being met by solar, and must be billed
+      // to AIDC at the PPA rate accordingly. Using the intended target instead of the realized
+      // grid draw here previously under-billed those hours to $0 (a real bug, not a display
+      // glitch — surfaced by the power chart showing no bars for those hours at all).
+      let gridToLoad, solarToLoad;
+      if(price < P.ppa){
+        // Grid preferentially serves the load — up to whatever grid import actually reached
+        // the site once solar's own surplus (if any) is accounted for.
+        gridToLoad  = Math.min(clampedGrid, Math.max(0, aidc - bDischarge));
+        solarToLoad = Math.max(0, aidc - bDischarge - gridToLoad);
+      } else {
+        // Solar preferentially serves the load; grid only fills what's left.
+        solarToLoad = Math.min(solar, aidc);
+        gridToLoad  = Math.max(0, aidc - solarToLoad - bDischarge);
+      }
+
+      // Cost in $/hr — PPA ownership model (P.ppa may be 0 to fall back to the old
+      // "same-owner, on-site solar is free" view):
+      //   · on-site energy delivered to the load (direct solar + BESS discharge) → PPA price,
+      //     billed to AIDC regardless of whether the battery electrons originally came from
+      //     solar or an overnight/sponge-window grid charge — the PPA seller owns the BESS too.
+      //   · grid import that serves the load directly → SAPN TOU price.
+      //   · grid import used only to CHARGE the battery is NOT re-billed to AIDC at the SAPN
+      //     rate — that's the PPA seller's own input cost (already priced into the $/kWh PPA
+      //     rate they charge AIDC for what the battery later delivers). Billing both the SAPN
+      //     charge-time cost AND the PPA discharge-time price for the same electrons would
+      //     double-count it. Whatever grid import is left after gridToLoad, by conservation,
+      //     must be the charging portion — no need for a separate solar-vs-grid charge split.
+      //   · exported surplus solar's FIT income is NOT netted against AIDC's bill — that
+      //     revenue belongs to the solar/BESS asset owner, per Vincent's 2026-08-27 call.
+      //   · ONE more carve-out (2026-08-27): in a negative-price hour (price < P.ppa) where the
+      //     battery is already full and solar still has surplus over the load, that solar-to-load
+      //     energy is NOT "the asset owner choosing to sell at full PPA" — physically their only
+      //     alternatives were exporting at the same negative grid price (a loss) or curtailing
+      //     (zero revenue), so they'd rationally accept a steep discount off the normal PPA rate
+      //     to serve AIDC's load instead — priced via the separate P.ppaNeg slider (defaults to
+      //     half of P.ppa). This only applies to solarToLoad inside the price<P.ppa branch;
+      //     bDischarge is always 0 there (that branch never discharges the battery), so it never
+      //     touches BESS-delivered energy or any other window's normal PPA billing.
+      const onsiteToLoad = solarToLoad + bDischarge;
+      const negWindowSolarRate = (price < P.ppa) ? P.ppaNeg : P.ppa;
+      const cost = (gridToLoad * price + solarToLoad * negWindowSolarRate + bDischarge * P.ppa) * 1000;
+
+      results.push({h, win, solar, solarToLoad, bCharge, bDischarge,
+                    grid: clampedGrid, soc, price, cost,
+                    solarExport, aidc, unmet});
+    }
+  }
+  return results;
+}
+
+function sweepSim(baseP, T, solarProfile){
+  const steps=[];
+  for(let it=0.5;it<=5.05;it+=0.1){
+    const P={...baseP, aidc_it: Math.round(it*10)/10};
+    const r=simulate(P, T, solarProfile);
+    const totalCost=r.reduce((s,x)=>s+x.cost,0);
+    const blended=totalCost/(P.aidc_it*P.pue*24*1000); // $/kWh
+    const unmetMax=Math.max(...r.map(x=>x.unmet),0);
+    steps.push({it:P.aidc_it, blended, totalCost, unmetMax});
+  }
+  return steps;
+}
+
+// ─── Canvas 2D chart engine (replaces Chart.js — no external script dependency,
+// required for this page to be publishable as a fully self-contained artifact).
+// Each draw*Chart function fully redraws its <canvas> from scratch on every call;
+// there is no persistent chart "instance" to update, so updateUI()/updateSweep()
+// just call these again with fresh data. A resize listener redraws the last-known
+// state so charts stay crisp if the window/panel size changes.
+
+function fitCanvas(canvas){
+  const rect=canvas.parentElement.getBoundingClientRect();
+  const dpr=window.devicePixelRatio||1;
+  const w=Math.max(10,Math.floor(rect.width));
+  const h=Math.max(10,Math.floor(rect.height));
+  canvas.width=Math.round(w*dpr);
+  canvas.height=Math.round(h*dpr);
+  canvas.style.width=w+'px';
+  canvas.style.height=h+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx,w,h};
+}
+
+function niceNum(range,round){
+  if(range<=0) range=1;
+  const exp=Math.floor(Math.log10(range));
+  const f=range/Math.pow(10,exp);
+  let nf;
+  if(round){ nf = f<1.5?1 : f<3?2 : f<7?5 : 10; }
+  else     { nf = f<=1?1 : f<=2?2 : f<=5?5 : 10; }
+  return nf*Math.pow(10,exp);
+}
+function niceTicks(min,max,count){
+  if(!isFinite(min)) min=0;
+  if(!isFinite(max)) max=1;
+  if(min===max){ min-=1; max+=1; }
+  const range=niceNum(max-min,false);
+  const step=niceNum(range/(count-1),true);
+  const niceMin=Math.floor(min/step)*step;
+  const niceMax=Math.ceil(max/step)*step;
+  const ticks=[];
+  for(let v=niceMin; v<=niceMax+step*0.5; v+=step) ticks.push(+v.toFixed(6));
+  return {ticks,min:niceMin,max:niceMax};
+}
+function drawGrid(ctx,area,yTicks,yToPx){
+  ctx.strokeStyle='oklch(0.94 0 0)';
+  ctx.lineWidth=1;
+  yTicks.forEach(v=>{
+    const y=Math.round(yToPx(v))+0.5;
+    ctx.beginPath();
+    ctx.moveTo(area.left,y);
+    ctx.lineTo(area.left+area.width,y);
+    ctx.stroke();
+  });
+}
+function drawTariffBg(ctx,area,T){
+  const colW=area.width/24;
+  for(let h=0;h<24;h++){
+    const win=getWindow(h,T);
+    ctx.fillStyle=WINDOW_COLORS[win];
+    ctx.fillRect(area.left+h*colW,area.top,colW,area.height);
+  }
+}
+function drawAxisLabels(ctx,area,opts){
+  const {left,top,width,height}=area;
+  const right=left+width, bottom=top+height;
+  ctx.font='9px Geist,system-ui,sans-serif';
+  ctx.fillStyle='oklch(0.45 0 0)';
+  ctx.textAlign='right'; ctx.textBaseline='middle';
+  opts.yTicks.forEach(v=>{
+    ctx.fillText(opts.yFmt?opts.yFmt(v):String(v), left-6, opts.yToPx(v));
+  });
+  ctx.strokeStyle='oklch(0.90 0 0)';
+  ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(left,top); ctx.lineTo(left,bottom); ctx.lineTo(right,bottom);
+  ctx.stroke();
+  if(opts.xLabels){
+    ctx.fillStyle='#94a3b8';
+    ctx.textAlign='center'; ctx.textBaseline='top';
+    opts.xLabels.forEach((lbl,i)=>{ if(lbl!=null) ctx.fillText(lbl, opts.xToPx(i), bottom+4); });
+  }
+  if(opts.yAxisTitle){
+    ctx.save();
+    ctx.translate(11, top+height/2);
+    ctx.rotate(-Math.PI/2);
+    ctx.fillStyle='oklch(0.45 0 0)'; ctx.font='500 10px Geist,system-ui,sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(opts.yAxisTitle,0,0);
+    ctx.restore();
+  }
+  if(opts.xAxisTitle){
+    ctx.fillStyle='oklch(0.45 0 0)'; ctx.font='500 10px Geist,system-ui,sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+    ctx.fillText(opts.xAxisTitle, left+width/2, bottom+18);
+  }
+}
+const HOUR_XLABELS = HOURS.map(h=> h%3===0 ? HLABELS[h].slice(0,2) : null);
+
+function drawPowerChart(canvas,results,T){
+  const {ctx,w,h}=fitCanvas(canvas);
+  ctx.clearRect(0,0,w,h);
+  const area={left:44,top:12,width:w-44-8,height:h-12-26};
+  const pos=results.map(r=>r.solarToLoad+r.bDischarge+r.grid);
+  const neg=results.map(r=>-r.bCharge);
+  const aidcArr=results.map(r=>r.aidc);
+  const {ticks,min,max}=niceTicks(Math.min(0,...neg), Math.max(0.1,...pos,...aidcArr), 5);
+  const yToPx=v=>area.top+area.height*(1-(v-min)/(max-min));
+  const colW=area.width/24;
+  const xToPx=i=>area.left+colW*(i+0.5);
+
+  drawTariffBg(ctx,area,T);
+  drawGrid(ctx,area,ticks,yToPx);
+
+  results.forEach((r,i)=>{
+    const x0=area.left+i*colW+colW*0.14, bw=colW*0.72;
+    let cum=0;
+    [[r.solarToLoad,'oklch(0.58 0.08 85 / 0.80)'],[r.bDischarge,'oklch(0.45 0.11 155 / 0.80)'],[r.grid,'oklch(0.42 0.12 255 / 0.80)']]
+      .forEach(([v,color])=>{
+        if(v<=0) return;
+        const y1=yToPx(cum), y2=yToPx(cum+v);
+        ctx.fillStyle=color;
+        ctx.fillRect(x0,y2,bw,y1-y2);
+        cum+=v;
+      });
+    if(r.bCharge>0.0005){
+      const y0=yToPx(0), y1=yToPx(-r.bCharge);
+      ctx.fillStyle='oklch(0.50 0.08 295 / 0.70)';
+      ctx.fillRect(x0,y0,bw,y1-y0);
+    }
+  });
+
+  ctx.strokeStyle='oklch(0.90 0 0)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(area.left,yToPx(0)); ctx.lineTo(area.left+area.width,yToPx(0)); ctx.stroke();
+
+  ctx.strokeStyle='oklch(0.55 0.19 25)'; ctx.lineWidth=2; ctx.setLineDash([6,3]);
+  ctx.beginPath();
+  results.forEach((r,i)=>{ const px=xToPx(i),py=yToPx(r.aidc); i===0?ctx.moveTo(px,py):ctx.lineTo(px,py); });
+  ctx.stroke(); ctx.setLineDash([]);
+
+  drawAxisLabels(ctx,area,{yTicks:ticks,yToPx,yFmt:v=>v.toFixed(1),xLabels:HOUR_XLABELS,xToPx,yAxisTitle:'MW'});
+}
+
+function drawSOCChart(canvas,results,socMin,socMax,T){
+  const {ctx,w,h}=fitCanvas(canvas);
+  ctx.clearRect(0,0,w,h);
+  const area={left:42,top:10,width:w-42-8,height:h-10-26};
+  const vals=results.map(r=>r.soc);
+  const {ticks,min,max}=niceTicks(Math.min(0,socMin,...vals), Math.max(socMax,...vals)*1.02, 5);
+  const yToPx=v=>area.top+area.height*(1-(v-min)/(max-min));
+  const colW=area.width/24;
+  const xToPx=i=>area.left+colW*(i+0.5);
+
+  drawTariffBg(ctx,area,T);
+  drawGrid(ctx,area,ticks,yToPx);
+
+  ctx.beginPath();
+  results.forEach((r,i)=>{ const px=xToPx(i),py=yToPx(r.soc); i===0?ctx.moveTo(px,py):ctx.lineTo(px,py); });
+  ctx.lineTo(xToPx(23),yToPx(min)); ctx.lineTo(xToPx(0),yToPx(min)); ctx.closePath();
+  ctx.fillStyle='oklch(0.45 0.11 155 / 0.10)'; ctx.fill();
+
+  ctx.beginPath();
+  results.forEach((r,i)=>{ const px=xToPx(i),py=yToPx(r.soc); i===0?ctx.moveTo(px,py):ctx.lineTo(px,py); });
+  ctx.strokeStyle='oklch(0.45 0.11 155)'; ctx.lineWidth=2; ctx.stroke();
+
+  [[socMin,'oklch(0.55 0.19 25)'],[socMax,'oklch(0.58 0.08 85)']].forEach(([v,color])=>{
+    ctx.strokeStyle=color; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(area.left,yToPx(v)); ctx.lineTo(area.left+area.width,yToPx(v)); ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  drawAxisLabels(ctx,area,{yTicks:ticks,yToPx,yFmt:v=>v.toFixed(1),xLabels:HOUR_XLABELS,xToPx,yAxisTitle:'MWh'});
+}
+
+function drawCostChart(canvas,results,T){
+  const {ctx,w,h}=fitCanvas(canvas);
+  ctx.clearRect(0,0,w,h);
+  const area={left:38,top:20,width:w-38-8,height:h-20-26};
+  const vals=results.map(r=>r.cost);
+  const {ticks,min,max}=niceTicks(Math.min(0,...vals), Math.max(0.1,...vals), 5);
+  const yToPx=v=>area.top+area.height*(1-(v-min)/(max-min));
+  const colW=area.width/24;
+  const xToPx=i=>area.left+colW*(i+0.5);
+
+  drawGrid(ctx,area,ticks,yToPx);
+  const y0=yToPx(0);
+  ctx.font='500 8px Geist,system-ui,sans-serif';
+  results.forEach((r,i)=>{
+    const win=getWindow(i,T);
+    const color=win==='peak'?'oklch(0.55 0.19 25 / 0.75)':win==='sponge'?'oklch(0.45 0.11 155 / 0.70)':
+                win==='shoulder'?'oklch(0.58 0.08 85 / 0.75)':'oklch(0.42 0.12 255 / 0.70)';
+    const x0=area.left+i*colW+colW*0.14, bw=colW*0.72;
+    const yv=yToPx(r.cost);
+    ctx.fillStyle=color;
+    if(r.cost>=0) ctx.fillRect(x0,yv,bw,y0-yv);
+    else ctx.fillRect(x0,y0,bw,yv-y0);
+    if(Math.abs(r.cost)>0.001){
+      ctx.fillStyle=r.cost<0?'oklch(0.45 0.11 155)':'oklch(0.205 0 0)';
+      ctx.textAlign='center';
+      const above=r.cost>=0;
+      ctx.textBaseline=above?'bottom':'top';
+      let ly=yv+(above?-3:3);
+      ly=Math.max(area.top+8, Math.min(area.top+area.height-2, ly));
+      ctx.fillText('$'+r.cost.toFixed(0), x0+bw/2, ly);
+    }
+  });
+  ctx.strokeStyle='oklch(0.90 0 0)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(area.left,y0); ctx.lineTo(area.left+area.width,y0); ctx.stroke();
+
+  drawAxisLabels(ctx,area,{yTicks:ticks,yToPx,yFmt:v=>'$'+v.toFixed(0),xLabels:HOUR_XLABELS,xToPx,yAxisTitle:'$/hr'});
+}
+
+function drawSweepChart(canvas,data,curIt){
+  const {ctx,w,h}=fitCanvas(canvas);
+  ctx.clearRect(0,0,w,h);
+  const area={left:52,top:12,width:w-52-8,height:h-12-42};
+  const vals=data.map(d=>d.blended);
+  const {ticks,min,max}=niceTicks(Math.min(0,...vals), Math.max(0.0001,...vals), 5);
+  const yToPx=v=>area.top+area.height*(1-(v-min)/(max-min));
+  const n=data.length;
+  const xToPx=i=>area.left + (n<=1?0:(area.width*i/(n-1)));
+
+  drawGrid(ctx,area,ticks,yToPx);
+
+  ctx.beginPath();
+  data.forEach((d,i)=>{ const px=xToPx(i),py=yToPx(d.blended); i===0?ctx.moveTo(px,py):ctx.lineTo(px,py); });
+  ctx.lineTo(xToPx(n-1),yToPx(min)); ctx.lineTo(xToPx(0),yToPx(min)); ctx.closePath();
+  ctx.fillStyle='oklch(0.42 0.12 255 / 0.08)'; ctx.fill();
+
+  ctx.beginPath();
+  data.forEach((d,i)=>{ const px=xToPx(i),py=yToPx(d.blended); i===0?ctx.moveTo(px,py):ctx.lineTo(px,py); });
+  ctx.strokeStyle='oklch(0.42 0.12 255)'; ctx.lineWidth=2; ctx.stroke();
+
+  if(min<0 && max>0){
+    ctx.strokeStyle='oklch(0.90 0 0)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(area.left,yToPx(0)); ctx.lineTo(area.left+area.width,yToPx(0)); ctx.stroke();
+  }
+
+  let closestIdx=0, closestDiff=Infinity;
+  data.forEach((d,i)=>{ const diff=Math.abs(d.it-curIt); if(diff<closestDiff){closestDiff=diff;closestIdx=i;} });
+  const hp=data[closestIdx];
+  ctx.save();
+  ctx.translate(xToPx(closestIdx), yToPx(hp.blended));
+  ctx.rotate(Math.PI/4);
+  ctx.fillStyle='oklch(0.50 0.08 295)';
+  ctx.fillRect(-5,-5,10,10);
+  ctx.restore();
+
+  const xLabels=data.map((d,i)=> (i%5===0 || i===n-1) ? d.it.toFixed(1) : null);
+  drawAxisLabels(ctx,area,{yTicks:ticks,yToPx,yFmt:v=>'$'+v.toFixed(3),xLabels,xToPx,yAxisTitle:'综合电价 ($/kWh)',xAxisTitle:'IT 负载 (MW)'});
+}
+
+// Last-drawn state, kept so a window resize can redraw charts at the new canvas size.
+let lastPowerState=null, lastSweepState=null;
+function redrawAll(){
+  if(lastPowerState){
+    const {P,results,T}=lastPowerState;
+    drawPowerChart(document.getElementById('cPower'),results,T);
+    drawSOCChart(document.getElementById('cSOC'),results,P.bcap*P.socmin/100,P.bcap*P.socmax/100,T);
+    drawCostChart(document.getElementById('cCost'),results,T);
+  }
+  if(lastSweepState){
+    drawSweepChart(document.getElementById('cSweep'),lastSweepState.data,lastSweepState.curIt);
+  }
+}
+let resizeTimer=null;
+window.addEventListener('resize',()=>{
+  clearTimeout(resizeTimer);
+  resizeTimer=setTimeout(redrawAll,120);
+});
+
+function getParams(){
+  const g=id=>parseFloat(document.getElementById(id).value);
+  return{
+    aidc_it:g('s-aidc'), pue:g('s-pue'),
+    solar_peak:g('s-solar'), cf:g('s-cf'),
+    bcap:g('s-bcap'), bpow:g('s-bpow'),
+    socmin:g('s-socmin'), socmax:g('s-socmax'),
+    glim:g('s-glim'), fit:g('s-fit'), ppa:g('s-ppa'), ppaNeg:g('s-ppa-neg'),
+    // legacy fallback prices (used only if tariff table unreadable)
+    shoulder:0.138, sponge:0.040, peak:0.244, offpeak:0.092,
+  };
+}
+
+function updateUI(P,results,annual){
+  const totalCost=results.reduce((s,r)=>s+r.cost,0);          // $ per day (selected season)
+  const totalEnergy_kWh=P.aidc_it*P.pue*24*1000;              // kWh per day
+  const blended=totalCost/totalEnergy_kWh;                     // $/kWh (selected season)
+  const totalEnergy_MWh=P.aidc_it*P.pue*24;                   // MWh per day
+
+  // Baseline: same load but 100% grid at each hour's tariff (no solar/BESS) — selected season
+  const baselineCost=results.reduce((s,r)=>s+Math.max(0,r.aidc*r.price*1000),0); // $/day
+  const baselineBlended=baselineCost/totalEnergy_kWh;           // $/kWh
+
+  // Annual figures now come from `annual` (weighted blend of summer/equinox/winter days,
+  // computed in run()) instead of naively extrapolating the single displayed day × 365.
+  const annualCost=annual.cost;
+  const annualBaseline=annual.baseline;
+  const annualSavings=annualBaseline-annualCost;
+  const savingPct=(1-annualCost/annualBaseline)*100;
+
+  const solarTotal=results.reduce((s,r)=>s+Math.min(r.solar,r.aidc),0); // MWh
+  const solarCov=solarTotal/totalEnergy_MWh*100;               // %
+  const peakResults=results.filter(r=>r.win==='peak');
+  const peakMax=Math.max(...peakResults.map(r=>r.grid),0);
+  // Peak local supply = energy solar+BESS provided during peak (= aidc - grid each hour)
+  const peakLocalMWh=peakResults.reduce((s,r)=>s+(r.aidc-r.grid),0);
+  const bChargeTotal=results.reduce((s,r)=>s+r.bCharge,0);
+  const cycles=bChargeTotal/(P.bcap*((P.socmax-P.socmin)/100));
+
+  // Unmet demand (selected season day) — see simulate()'s `unmet` field.
+  const unmetMax=Math.max(...results.map(r=>r.unmet),0);
+  const unmetTotal=results.reduce((s,r)=>s+r.unmet,0);
+  const banner=document.getElementById('unmet-banner');
+  const unmetTile=document.getElementById('k-unmet-tile');
+  document.getElementById('k-unmet').textContent=unmetMax.toFixed(2);
+  if(unmetMax>0.001){
+    banner.classList.add('show');
+    document.getElementById('unmet-text').textContent=
+      `当前设置下，负荷需求超出SAPN进口上限（含光伏+BESS后仍不够）：峰值缺口 ${unmetMax.toFixed(2)}MW，全天缺口电量 ${unmetTotal.toFixed(2)}MWh。这部分负荷在现实中会跳闸/欠电，不是"电网多花钱"能解决的，需要降低IT负载、提高SAPN进口上限，或增加BESS放电能力。`;
+    unmetTile.classList.add('unmet-hot');
+    unmetTile.classList.add('alert');
+  } else {
+    banner.classList.remove('show');
+    unmetTile.classList.remove('unmet-hot');
+    unmetTile.classList.remove('alert');
+  }
+
+  document.getElementById('k-blend').textContent='$'+blended.toFixed(4);
+  document.getElementById('k-blend-vs').textContent='vs 基准 $'+baselineBlended.toFixed(4);
+  document.getElementById('k-saving').textContent='$'+annualSavings.toLocaleString('en',{maximumFractionDigits:0});
+  document.getElementById('k-saving-pct').textContent='节省 '+savingPct.toFixed(1)+'%（三季混合）';
+  document.getElementById('k-daily').textContent='$'+totalCost.toFixed(0);
+  document.getElementById('k-annual').textContent='$'+annualCost.toLocaleString('en',{maximumFractionDigits:0});
+  document.getElementById('k-solar').textContent=solarCov.toFixed(1)+'%';
+  document.getElementById('k-peak-import').textContent=peakMax.toFixed(2)+'MW';
+  document.getElementById('k-peak-avoid').textContent=peakLocalMWh.toFixed(2)+'MWh';
+  document.getElementById('k-cycles').textContent=cycles.toFixed(2);
+  document.getElementById('total-load-display').textContent=
+    `总设施负载 = ${(P.aidc_it*P.pue).toFixed(2)} MW　·　显示日: ${SEASON_LABELS[getSeason()]}`;
+
+  // Charts (vanilla Canvas 2D — see draw*Chart functions above)
+  const _T=getTariffWindows();
+  const socMin=P.bcap*P.socmin/100, socMax=P.bcap*P.socmax/100;
+  drawPowerChart(document.getElementById('cPower'),results,_T);
+  drawSOCChart(document.getElementById('cSOC'),results,socMin,socMax,_T);
+  drawCostChart(document.getElementById('cCost'),results,_T);
+  lastPowerState={P,results,T:_T};
+
+  // Dispatch table
+  const tbody=document.getElementById('dtbody');
+  const tags={peak:'<span class="tag tag-peak">高峰</span>',
+               sponge:'<span class="tag tag-sponge">超低谷</span>',
+               shoulder:'<span class="tag tag-shoulder">肩峰</span>',
+               offpeak:'<span class="tag tag-offpeak">深夜</span>'};
+  tbody.innerHTML=results.map(r=>{
+    // Distinguish *why* the battery is charging: from solar surplus (free/already-generated
+    // energy) vs a deliberate grid-funded recharge at cheap TOU price (arbitrage — buying now
+    // to avoid buying at peak price later). Without this label the sponge-window grid charge
+    // looks like a bug ("why buy grid power while load isn't even solar-covered?").
+    const solarSurplus=Math.max(0, r.solar - r.aidc);
+    let bAction='待机';
+    if(r.bCharge>0.01){
+      bAction = r.win==='offpeak'
+        ? `深夜可靠性充电 +${r.bCharge.toFixed(2)}MW`
+        : r.bCharge <= solarSurplus + 0.01
+          ? `光伏余量充电 +${r.bCharge.toFixed(2)}MW`
+          : `电网回充 +${r.bCharge.toFixed(2)}MW`;
+    } else if(r.bDischarge>0.01){
+      bAction = `放电 -${r.bDischarge.toFixed(2)}MW`;
+    }
+    const costColor=r.cost<0?'oklch(0.45 0.11 155)':'inherit';
+    const gridCell=r.unmet>0.001
+      ? `<span style="color:oklch(0.55 0.19 25);font-weight:600">${r.grid.toFixed(3)} −${r.unmet.toFixed(2)}</span>`
+      : r.grid.toFixed(3);
+    return `<tr>
+      <td>${HLABELS[r.h]}</td>
+      <td>${tags[r.win]}</td>
+      <td>${r.solarToLoad.toFixed(2)}</td>
+      <td>${bAction}</td>
+      <td>${gridCell}</td>
+      <td>${r.soc.toFixed(2)}</td>
+      <td style="color:${costColor}">${r.cost.toFixed(3)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Find where the blended $/kWh curve crosses zero (linear interpolation between the two
+// bracketing sweep points). Below this IT load, solar+BESS export/arbitrage revenue outweighs
+// grid cost on a blended basis; above it, blended price turns positive. This crossing point is
+// a much more meaningful reference than "the sweep's minimum $/kWh", because — since a bigger
+// IT load always dilutes the fixed solar/BESS cost base less — the raw minimum just runs to
+// whichever end of the slider range is smallest, with no real optimum in between.
+function findBreakeven(data){
+  for(let i=1;i<data.length;i++){
+    const a=data[i-1], b=data[i];
+    if(a.blended<0 && b.blended>=0){
+      const frac=(0-a.blended)/(b.blended-a.blended);
+      return a.it + frac*(b.it-a.it);
+    }
+  }
+  return null;
+}
+
+function updateSweep(P,T,solarProfile){
+  if(!T) T=getTariffWindows();
+  const data=sweepSim(P,T,solarProfile);
+  const curIt=P.aidc_it;
+  const curBlended=data.find(d=>Math.abs(d.it-curIt)<0.05)?.blended??0;
+  const breakeven=findBreakeven(data);
+
+  drawSweepChart(document.getElementById('cSweep'),data,curIt);
+  lastSweepState={data,curIt};
+
+  const breakevenHtml = breakeven!=null
+    ? `盈亏平衡IT负载: <span class="optimal-badge">${breakeven.toFixed(2)} MW</span>（此负载以下光伏+BESS的卖电/套利收益能抵掉全部电费，综合电价≤$0；再往上转正）`
+    : `当前设置下曲线全程为正值，没有盈亏平衡点`;
+
+  document.getElementById('optimal-hint').innerHTML=
+    `此曲线随IT负载单调上升、没有内部最小点——数值上的最低点只是滑块下限(0.5MW)，不代表最佳容量。` +
+    `${breakevenHtml}　｜　当前设置: ${curIt}MW → $${curBlended.toFixed(4)}/kWh`;
+}
+
+// ─── Slider sync
+function syncSliders(){
+  const map=[
+    ['s-aidc','v-aidc','',1],['s-pue','v-pue','',2],
+    ['s-solar','v-solar','',2],['s-cf','v-cf','',2],
+    ['s-bcap','v-bcap','',1],['s-bpow','v-bpow','',1],
+    ['s-socmin','v-socmin','',0],['s-socmax','v-socmax','',0],
+    ['s-glim','v-glim','',1],['s-fit','v-fit','',2],['s-ppa','v-ppa','',3],['s-ppa-neg','v-ppa-neg','',3],
+  ];
+  map.forEach(([sid,vid,pre,dec])=>{
+    const el=document.getElementById(sid);
+    const update=()=>{
+      document.getElementById(vid).textContent=pre+parseFloat(el.value).toFixed(dec);
+    };
+    el.addEventListener('input',()=>{update();run();});
+    update();
+  });
+  document.getElementById('s-season').addEventListener('change', run);
+}
+
+// Annual estimate: run the same config through all three seasonal day-profiles and
+// weight each ~1/3 of the year (121-122 days), instead of extrapolating a single
+// (usually the sunniest) day's cost × 365. Still a coarse 3-point approximation of a
+// real annual simulation, but far less optimistic than the single-day version.
+const SEASON_WEIGHT_DAYS = {summer:122, equinox:121, winter:122}; // ≈365 total
+function computeAnnual(P,T){
+  let cost=0, baseline=0;
+  for(const season of Object.keys(SOLAR_PROFILES)){
+    const r=simulate(P,T,SOLAR_PROFILES[season]);
+    const dayCost=r.reduce((s,x)=>s+x.cost,0);
+    const dayBaseline=r.reduce((s,x)=>s+Math.max(0,x.aidc*x.price*1000),0);
+    const days=SEASON_WEIGHT_DAYS[season];
+    cost+=dayCost*days;
+    baseline+=dayBaseline*days;
+  }
+  return {cost, baseline};
+}
+
+function run(){
+  const P=getParams();
+  const T=getTariffWindows();
+  const season=getSeason();
+  const solarProfile=SOLAR_PROFILES[season];
+  const results=simulate(P,T,solarProfile);
+  const annual=computeAnnual(P,T);
+  updateUI(P,results,annual);
+  updateSweep(P,T,solarProfile);
+}
+
+const DEFAULTS={
+  's-aidc':'3.0','s-pue':'1.20','s-season':'summer','s-solar':'4.95','s-cf':'0.85',
+  's-bcap':'10','s-bpow':'5','s-socmin':'10','s-socmax':'90',
+  's-glim':'5','s-fit':'0.05','s-ppa':'0.07','s-ppa-neg':'0.035',
+  't-op-s':'21','t-op-e':'7','t-op-p':'0.092',
+  't-sh-s':'7','t-sh-e':'10','t-sh-p':'0.138',
+  't-sp-s':'10','t-sp-e':'16','t-sp-p':'-0.018',
+  't-pk-s':'16','t-pk-e':'21','t-pk-p':'0.244',
+};
+function resetAll(){
+  Object.entries(DEFAULTS).forEach(([id,val])=>{
+    const el=document.getElementById(id);
+    if(el) el.value=val;
+  });
+  document.querySelectorAll('input[type=range]').forEach(el=>el.dispatchEvent(new Event('input')));
+  run();
+}
+
+// ─── Init
+syncSliders();
+document.getElementById('btn-reset').addEventListener('click', resetAll);
+// Wire up tariff table inputs
+document.querySelectorAll('.t-num,.t-price').forEach(el=>{
+  el.addEventListener('input', run);
+  el.addEventListener('change', run);
+});
+run();
+</script>
+</body>
+</html>
