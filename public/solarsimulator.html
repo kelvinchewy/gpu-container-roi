@@ -94,7 +94,7 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 
 .hint { font-size: 11px; color: var(--muted-foreground); line-height: 1.5; margin-bottom: 12px; }
 .load-line { font-size: 12px; color: var(--muted-foreground); margin-bottom: 12px; }
 
-.t-num, .t-price { width: 52px; height: 32px; background: transparent; border: 1px solid var(--input); border-radius: 8px; color: var(--foreground); font-size: 12px; font-weight: 500; text-align: center; outline: none; }
+.t-num, .t-price { width: 100%; max-width: 72px; height: 32px; background: transparent; border: 1px solid var(--input); border-radius: 8px; color: var(--foreground); font-size: 12px; font-weight: 500; text-align: center; outline: none; }
 .t-num:focus, .t-price:focus { border-color: var(--ring); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent); }
 input[type=number]::-webkit-inner-spin-button { opacity: .4; }
 
@@ -103,11 +103,15 @@ input[type=number]::-webkit-inner-spin-button { opacity: .4; }
 .kpi.unmet-hot { box-shadow: 0 0 0 1px color-mix(in oklab, var(--destructive) 35%, transparent); }
 
 .season-select { width: 100%; height: 32px; padding: 0 10px; border: 1px solid var(--input); border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; font-size: 12px; margin-bottom: 12px; }
-.tariff-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.tariff-table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; }
 .tariff-table th { text-align: left; padding: 8px 6px 10px; color: var(--muted-foreground); font-weight: 500; border-bottom: 1px solid var(--border); }
-.tariff-table td { padding: 10px 6px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-.tariff-table tr:last-child td { border-bottom: 0; }
-.tariff-action { color: var(--muted-foreground); font-size: 11px; line-height: 1.45; padding-right: 4px; }
+.tariff-table th:nth-child(n+2), .tariff-table .tariff-inputs td:nth-child(n+2) { text-align: center; }
+.tariff-table col.window { width: 28%; }
+.tariff-table col.start, .tariff-table col.end, .tariff-table col.price { width: 24%; }
+.tariff-inputs td { padding: 10px 6px 4px; border-bottom: 0; vertical-align: middle; }
+.tariff-action td { padding: 0 6px 14px; border-bottom: 1px solid var(--border); color: var(--muted-foreground); font-size: 11px; line-height: 1.45; }
+.tariff-action-lbl { display: block; font-weight: 500; color: var(--foreground); margin-bottom: 2px; }
+.tariff-table tbody:last-child .tariff-action td { border-bottom: 0; padding-bottom: 8px; }
 
 details.fold { margin: 4px 0 16px; }
 details.fold > summary { cursor: pointer; font-size: 12px; color: var(--muted-foreground); list-style: none; padding: 4px 0; }
@@ -180,43 +184,62 @@ details.fold .fold-body { margin-top: 8px; padding: 10px 12px; font-size: 12px; 
 
   <div class="section-label">SAPN 分时电价</div>
   <table class="tariff-table" id="tariff-table">
+    <colgroup>
+      <col class="window">
+      <col class="start">
+      <col class="end">
+      <col class="price">
+    </colgroup>
     <thead>
       <tr>
         <th>时段</th>
         <th>开始</th>
         <th>结束</th>
         <th>$/kWh</th>
-        <th>EMS动作</th>
       </tr>
     </thead>
-    <tbody>
-      <tr class="tariff-row" data-id="offpeak">
+    <tbody class="tariff-row" data-id="offpeak">
+      <tr class="tariff-inputs">
         <td><span class="tag tag-offpeak">深夜</span></td>
-        <td style="text-align:center"><input class="t-num" id="t-op-s" type="number" min="0" max="23" value="21"></td>
-        <td style="text-align:center"><input class="t-num" id="t-op-e" type="number" min="0" max="23" value="7"></td>
-        <td style="text-align:center"><input class="t-price" id="t-op-p" type="number" min="-0.1" max="0.5" step="0.001" value="0.092"></td>
-        <td class="tariff-action">可靠性充电（不比价）：电池慢充至90% SOC，为肩峰放电做准备，成本由光伏/BESS资产方承担，不计入AIDC账单</td>
+        <td><input class="t-num" id="t-op-s" type="number" min="0" max="23" value="21"></td>
+        <td><input class="t-num" id="t-op-e" type="number" min="0" max="23" value="7"></td>
+        <td><input class="t-price" id="t-op-p" type="number" min="-0.1" max="0.5" step="0.001" value="0.092"></td>
       </tr>
-      <tr class="tariff-row" data-id="shoulder">
+      <tr class="tariff-action">
+        <td colspan="4"><span class="tariff-action-lbl">EMS动作</span>可靠性充电（不比价）：电池慢充至90% SOC，为肩峰放电做准备，成本由光伏/BESS资产方承担，不计入AIDC账单</td>
+      </tr>
+    </tbody>
+    <tbody class="tariff-row" data-id="shoulder">
+      <tr class="tariff-inputs">
         <td><span class="tag tag-shoulder">肩峰</span></td>
-        <td style="text-align:center"><input class="t-num" id="t-sh-s" type="number" min="0" max="23" value="7"></td>
-        <td style="text-align:center"><input class="t-num" id="t-sh-e" type="number" min="0" max="23" value="10"></td>
-        <td style="text-align:center"><input class="t-price" id="t-sh-p" type="number" min="-0.1" max="0.5" step="0.001" value="0.138"></td>
-        <td class="tariff-action">本时段电价高于PPA价：优先光伏/电池供电避免买贵电，电网补缺口</td>
+        <td><input class="t-num" id="t-sh-s" type="number" min="0" max="23" value="7"></td>
+        <td><input class="t-num" id="t-sh-e" type="number" min="0" max="23" value="10"></td>
+        <td><input class="t-price" id="t-sh-p" type="number" min="-0.1" max="0.5" step="0.001" value="0.138"></td>
       </tr>
-      <tr class="tariff-row" data-id="sponge">
+      <tr class="tariff-action">
+        <td colspan="4"><span class="tariff-action-lbl">EMS动作</span>本时段电价高于PPA价：优先光伏/电池供电避免买贵电，电网补缺口</td>
+      </tr>
+    </tbody>
+    <tbody class="tariff-row" data-id="sponge">
+      <tr class="tariff-inputs">
         <td><span class="tag tag-sponge">超低谷</span></td>
-        <td style="text-align:center"><input class="t-num" id="t-sp-s" type="number" min="0" max="23" value="10"></td>
-        <td style="text-align:center"><input class="t-num" id="t-sp-e" type="number" min="0" max="23" value="16"></td>
-        <td style="text-align:center"><input class="t-price" id="t-sp-p" type="number" min="-0.1" max="0.5" step="0.001" value="-0.018" title="按AEMO最新一期(2026年Q1，2026年4月发布)数据：南澳白天(9-17点)负/零电价占比已达67%的时段(Q4 2025一度高见88%，Q1 2025同期66.7%)，NEM整体负值区间均价约-$17.7/MWh(Q1 2025约-$35.4/MWh、Q4 2025约-$19.4/MWh)——负电价越来越频繁，但单次负得没那么深。窗口10-16点是跨三季的保守估算(冬季光伏出力高的时段本身就集中在10-15点附近，夏季/春秋分实际能到9-17点，此处未按季节细分，取中间偏保守值)，价格取-$0.018/kWh代表性估算，均可自行调整。"></td>
-        <td class="tariff-action">本时段电价低于PPA价：负荷改由电网直供，光伏全部拿去充电池/外送，不走PPA计费，充满备高峰用</td>
+        <td><input class="t-num" id="t-sp-s" type="number" min="0" max="23" value="10"></td>
+        <td><input class="t-num" id="t-sp-e" type="number" min="0" max="23" value="16"></td>
+        <td><input class="t-price" id="t-sp-p" type="number" min="-0.1" max="0.5" step="0.001" value="-0.018" title="按AEMO最新一期(2026年Q1，2026年4月发布)数据：南澳白天(9-17点)负/零电价占比已达67%的时段(Q4 2025一度高见88%，Q1 2025同期66.7%)，NEM整体负值区间均价约-$17.7/MWh(Q1 2025约-$35.4/MWh、Q4 2025约-$19.4/MWh)——负电价越来越频繁，但单次负得没那么深。窗口10-16点是跨三季的保守估算(冬季光伏出力高的时段本身就集中在10-15点附近，夏季/春秋分实际能到9-17点，此处未按季节细分，取中间偏保守值)，价格取-$0.018/kWh代表性估算，均可自行调整。"></td>
       </tr>
-      <tr class="tariff-row" data-id="peak">
+      <tr class="tariff-action">
+        <td colspan="4"><span class="tariff-action-lbl">EMS动作</span>本时段电价低于PPA价：负荷改由电网直供，光伏全部拿去充电池/外送，不走PPA计费，充满备高峰用</td>
+      </tr>
+    </tbody>
+    <tbody class="tariff-row" data-id="peak">
+      <tr class="tariff-inputs">
         <td><span class="tag tag-peak">高峰</span></td>
-        <td style="text-align:center"><input class="t-num" id="t-pk-s" type="number" min="0" max="23" value="16"></td>
-        <td style="text-align:center"><input class="t-num" id="t-pk-e" type="number" min="0" max="23" value="21"></td>
-        <td style="text-align:center"><input class="t-price" id="t-pk-p" type="number" min="-0.1" max="0.5" step="0.001" value="0.244"></td>
-        <td class="tariff-action">本时段电价远高于PPA价：太阳能优先+电池补缺口，电网兜底</td>
+        <td><input class="t-num" id="t-pk-s" type="number" min="0" max="23" value="16"></td>
+        <td><input class="t-num" id="t-pk-e" type="number" min="0" max="23" value="21"></td>
+        <td><input class="t-price" id="t-pk-p" type="number" min="-0.1" max="0.5" step="0.001" value="0.244"></td>
+      </tr>
+      <tr class="tariff-action">
+        <td colspan="4"><span class="tariff-action-lbl">EMS动作</span>本时段电价远高于PPA价：太阳能优先+电池补缺口，电网兜底</td>
       </tr>
     </tbody>
   </table>
