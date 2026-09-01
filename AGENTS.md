@@ -16,7 +16,7 @@ This is the project contract. Cursor loads this file the way Claude Code loads `
 - **Access:** internal, no auth. Do not submit the Vercel URL to public directories.
 - **Language:** Default English. Segmented **EN | 中文** in the header. `?lang=zh` is Simplified Chinese UI; omit when English. No `/zh` route. Engine, goldens, URL keys, SKU names, OBBBA/PUE/IRR/NPV/CapEx/NCF, and USD stay English. User-typed site names are not translated.
 - **UI:** one page, four tabs. Stock shadcn. No custom CSS campaign. No Dashboard/Brief/Story/Lab names.
-- **`/solarsimulator`:** Kadina EMS (static HTML at `public/solarsimulator.html`). Not a fifth GPU tab. Not the Excel engine. Noindex like the rest of the app.
+- **`/solarsimulator`:** Kadina EMS (static HTML at `public/solarsimulator.html`). Not a fifth GPU tab. Not the Excel engine. Noindex like the rest of the app. Sidebar toggle: **第三方 PPA** (default, same billing as before) vs **AIDC 自有** (solar still PPA; AIDC pays BESS charge, discharge-to-load is free, optional last-hour peak export). Do not restyle this page into the four-tab chrome.
 - **Notion twin:** [GPU Container ROI](https://app.notion.com/p/hashing/5090-6000-3be1a6d49e8f801d9d11ed4b65ac29cc) is a readable twin for people and other agents. **This file wins if they disagree.**
 
 ---

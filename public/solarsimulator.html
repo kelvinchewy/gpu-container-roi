@@ -45,8 +45,19 @@ body { background: var(--background); color: var(--foreground); font-size: 13px;
 .chrome-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; padding-top: 2px; }
 .btn { height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--foreground); font: inherit; font-size: 13px; cursor: pointer; }
 .btn:hover { background: var(--muted); }
+.seg { display: flex; background: var(--muted); border-radius: 8px; padding: 3px; gap: 2px; margin-bottom: 12px; }
+.seg label { flex: 1; margin: 0; cursor: pointer; position: relative; }
+.seg input { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; opacity: 0; pointer-events: none; }
+.seg span { display: block; text-align: center; font-size: 12px; font-weight: 500; line-height: 1.3; padding: 8px 6px; border-radius: 6px; color: var(--muted-foreground); }
+.seg input:checked + span { background: var(--card); color: var(--foreground); box-shadow: 0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent); }
+.seg input:focus-visible + span { box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent); }
+.seg input:checked:focus-visible + span { box-shadow: 0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent), 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent); }
+.check-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 12px; font-size: 12px; color: var(--muted-foreground); line-height: 1.4; cursor: pointer; }
+.check-row input { margin-top: 2px; accent-color: var(--ring); }
 
 .kpis { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 10px; }
+.kpis.mode-aidc { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+.mode-aidc-only[hidden] { display: none !important; }
 .kpi { background: var(--card); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; min-width: 0; box-shadow: 0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent); }
 .kpi-lbl { font-size: 12px; color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; }
 .kpi-val { font-size: 13px; font-weight: 500; }
@@ -60,6 +71,7 @@ body { background: var(--background); color: var(--foreground); font-size: 13px;
 .slider-row { margin-bottom: 14px; }
 .slider-row label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; color: var(--muted-foreground); font-size: 12px; gap: 8px; }
 .slider-row label span { color: var(--foreground); font-family: "Geist Mono", ui-monospace, monospace; font-size: 12px; font-weight: 500; min-width: 52px; text-align: right; }
+.slider-row label .slider-lbl { color: inherit; font-family: inherit; font-size: inherit; font-weight: inherit; min-width: 0; text-align: left; flex: 1; }
 input[type=range] { width: 100%; height: 4px; -webkit-appearance: none; appearance: none; background: var(--muted); border-radius: 999px; outline: none; cursor: pointer; }
 input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 1px solid var(--ring); cursor: pointer; }
 input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 1px solid var(--ring); cursor: pointer; }
@@ -121,7 +133,7 @@ details.fold[open] > summary::after { content: " ▾"; }
 details.fold .fold-body { margin-top: 8px; padding: 10px 12px; font-size: 12px; color: var(--muted-foreground); line-height: 1.55; background: var(--muted); border-radius: 8px; }
 
 @media (max-width: 1400px) {
-  .kpis { grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); }
+  .kpis, .kpis.mode-aidc { grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); }
 }
 @media (max-width: 960px) {
   :root { --gutter: 20px; --gutter-sm: 20px; }
@@ -140,7 +152,7 @@ details.fold .fold-body { margin-top: 8px; padding: 10px 12px; font-size: 12px; 
   <div class="chrome-top">
     <div>
       <h1>Kadina EMS</h1>
-      <p>SAPN TOU · 4.95 MW solar · 5 MW / 10 MWh BESS · South Australia</p>
+      <p id="header-subtitle">SAPN TOU · 4.95 MW solar · 5 MW / 10 MWh BESS · South Australia</p>
     </div>
     <div class="chrome-actions">
       <button type="button" class="btn" id="btn-reset">Reset</button>
@@ -149,6 +161,23 @@ details.fold .fold-body { margin-top: 8px; padding: 10px 12px; font-size: 12px; 
 </div>
 
 <div class="sidebar">
+  <div class="section-label">BESS 归属</div>
+  <div class="seg" role="radiogroup" aria-label="BESS归属">
+    <label>
+      <input type="radio" name="calc-mode" value="legacy" checked>
+      <span>第三方 PPA</span>
+    </label>
+    <label>
+      <input type="radio" name="calc-mode" value="aidc">
+      <span>AIDC 自有</span>
+    </label>
+  </div>
+  <div class="hint">第三方：光伏+BESS同一资产方，AIDC按PPA买场内电。自有：光伏仍走PPA，电池由AIDC持有——充电计入账单，放电供负荷不再按PPA计费，高峰末小时可放电套利。</div>
+  <details class="fold">
+    <summary>两种归属差在哪</summary>
+    <div class="fold-body">物理调度相同（深夜充、超低谷电网直供、肩峰/高峰本地优先）。差别是谁付充电、放电怎么计费。第三方模式下电网给电池充电不进AIDC账单，放电按PPA卖给AIDC。自有模式下充电（光伏PPA或电网分时）计入AIDC，放电供负荷免费（已在充电时付过），可选高峰最后一小时把剩余电量卖回电网。</div>
+  </details>
+
   <div class="section-label">AIDC</div>
   <div class="slider-row"><label>IT负载 (MW)<span id="v-aidc">3.0</span></label><input type="range" id="s-aidc" min="0.5" max="5" step="0.1" value="3.0"></div>
   <div class="slider-row"><label>PUE<span id="v-pue">1.20</span></label><input type="range" id="s-pue" min="1.05" max="1.6" step="0.05" value="1.20"></div>
@@ -164,22 +193,26 @@ details.fold .fold-body { margin-top: 8px; padding: 10px 12px; font-size: 12px; 
   <div class="slider-row"><label>光伏峰值 (MW AC)<span id="v-solar">4.95</span></label><input type="range" id="s-solar" min="1" max="5" step="0.05" value="4.95"></div>
   <div class="slider-row"><label title="晴天当日出力折减系数：铭牌峰值×当日曲线(0~1)×本系数=实际交流出力。涵盖逆变器损耗、正午限幅、积灰、温度降额等——不是光伏行业常说的『年容量系数』(年均出力/铭牌，通常20-28%)，后者已含日夜/季节变化，不要重复套用，否则会把出力算得过低。">容量系数 (晴天=1.0)<span id="v-cf">0.85</span></label><input type="range" id="s-cf" min="0.3" max="1.0" step="0.05" value="0.85"></div>
 
-  <div class="section-label">BESS</div>
+  <div class="section-label" id="bess-heading">BESS</div>
   <div class="slider-row"><label>BESS容量 (MWh)<span id="v-bcap">10.0</span></label><input type="range" id="s-bcap" min="4" max="20" step="1" value="10"></div>
   <div class="slider-row"><label>最大功率 (MW)<span id="v-bpow">5.0</span></label><input type="range" id="s-bpow" min="1" max="8" step="0.5" value="5"></div>
   <div class="slider-row"><label>SOC最小值 (%)<span id="v-socmin">10</span></label><input type="range" id="s-socmin" min="5" max="30" step="5" value="10"></div>
   <div class="slider-row"><label>SOC最大值 (%)<span id="v-socmax">90</span></label><input type="range" id="s-socmax" min="70" max="100" step="5" value="90"></div>
+  <div class="mode-aidc-only" hidden>
+    <label class="check-row"><input type="checkbox" id="s-arbitrage-enable" checked>高峰末小时放电套利</label>
+    <div class="slider-row"><label title="仅在高峰窗口最后一小时、负荷已由光伏+电池满足后，剩余容量卖给电网的单价。收入计入AIDC账单。">BESS放电上网电价 ($/kWh)<span id="v-bess-export">0.200</span></label><input type="range" id="s-bess-export" min="0" max="0.40" step="0.01" value="0.20"></div>
+  </div>
 
   <div class="section-label">电网</div>
   <div class="slider-row"><label>SAPN进口上限 (MW)<span id="v-glim">5.0</span></label><input type="range" id="s-glim" min="1" max="5" step="0.5" value="5"></div>
-  <div class="slider-row"><label title="光伏多余电量卖回电网的收入——记在光伏/BESS资产方(SPV)账上，不冲抵AIDC的电费账单。仅供参考/展示外送电量的经济价值。">光伏上网电价 (FIT，不计入AIDC账单)<span id="v-fit">0.05</span></label><input type="range" id="s-fit" min="0" max="0.15" step="0.01" value="0.05"></div>
+  <div class="slider-row"><label id="fit-label" title="光伏多余电量卖回电网的收入——记在光伏/BESS资产方(SPV)账上，不冲抵AIDC的电费账单。仅供参考/展示外送电量的经济价值。"><span class="slider-lbl" id="fit-label-text">光伏上网电价 (FIT，不计入AIDC账单)</span><span id="v-fit">0.05</span></label><input type="range" id="s-fit" min="0" max="0.15" step="0.01" value="0.05"></div>
 
-  <div class="section-label">场内 PPA</div>
-  <div class="slider-row"><label title="假设AIDC与场内光伏+BESS资产分属不同主体：AIDC按此PPA价格向资产方购买场内直供的光伏电量+电池放电量(不区分电池里原本是光伏充的还是电网充的)；电网进口仍按SAPN分时电价单独计费。多余电量卖给电网的收入不冲抵AIDC账单(见上方FIT说明)。">场内PPA电价 ($/kWh)<span id="v-ppa">0.070</span></label><input type="range" id="s-ppa" min="0" max="0.15" step="0.005" value="0.07"></div>
-  <div class="slider-row"><label title="负电价/超低谷时段(电网价<PPA价)，电池充满后光伏仍有余量、顺其自然直供AIDC负载的那部分电量——这时资产方的替代选择是以负电价卖给电网(倒贴钱)或弃光(零收入)，所以理论上愿意接受远低于正常PPA价的折扣价卖给AIDC，双方都比默认选项划算。仅适用于这一细分场景，不影响肩峰/高峰的正常PPA价，也不影响该时段电网直供部分(仍按电网负电价计费)。">负电价时段光伏折扣直供价 ($/kWh)<span id="v-ppa-neg">0.035</span></label><input type="range" id="s-ppa-neg" min="0" max="0.07" step="0.005" value="0.035"></div>
+  <div class="section-label" id="ppa-heading">场内 PPA</div>
+  <div class="slider-row"><label id="ppa-label" title="假设AIDC与场内光伏+BESS资产分属不同主体：AIDC按此PPA价格向资产方购买场内直供的光伏电量+电池放电量(不区分电池里原本是光伏充的还是电网充的)；电网进口仍按SAPN分时电价单独计费。多余电量卖给电网的收入不冲抵AIDC账单(见上方FIT说明)。"><span class="slider-lbl" id="ppa-label-text">场内PPA电价 ($/kWh)</span><span id="v-ppa">0.070</span></label><input type="range" id="s-ppa" min="0" max="0.15" step="0.005" value="0.07"></div>
+  <div class="slider-row"><label id="ppa-neg-label" title="负电价/超低谷时段(电网价<PPA价)，电池充满后光伏仍有余量、顺其自然直供AIDC负载的那部分电量——这时资产方的替代选择是以负电价卖给电网(倒贴钱)或弃光(零收入)，所以理论上愿意接受远低于正常PPA价的折扣价卖给AIDC，双方都比默认选项划算。仅适用于这一细分场景，不影响肩峰/高峰的正常PPA价，也不影响该时段电网直供部分(仍按电网负电价计费)。"><span class="slider-lbl" id="ppa-neg-label-text">负电价时段光伏折扣直供价 ($/kWh)</span><span id="v-ppa-neg">0.035</span></label><input type="range" id="s-ppa-neg" min="0" max="0.07" step="0.005" value="0.035"></div>
   <details class="fold">
     <summary>PPA 计价说明</summary>
-    <div class="fold-body">默认视角：光伏+BESS资产由独立主体持有，按PPA价格把场内直供电量+电池放电量卖给AIDC；电网进口部分仍按下方SAPN分时电价单独计费。设为$0可退回同一主体、场内电免费的旧视角。折扣价滑块默认为PPA价的一半，仅生效于负电价窗口内「电池已满、光伏自然溢出供负载」这一具体场景——现实中这类折扣需要双方另行约定，模型里当作可调假设，不代表已有合同条款。</div>
+    <div class="fold-body" id="ppa-note">默认视角：光伏+BESS资产由独立主体持有，按PPA价格把场内直供电量+电池放电量卖给AIDC；电网进口部分仍按下方SAPN分时电价单独计费。设为$0可退回同一主体、场内电免费的旧视角。折扣价滑块默认为PPA价的一半，仅生效于负电价窗口内「电池已满、光伏自然溢出供负载」这一具体场景——现实中这类折扣需要双方另行约定，模型里当作可调假设，不代表已有合同条款。</div>
   </details>
 
   <div class="section-label">SAPN 分时电价</div>
@@ -206,7 +239,7 @@ details.fold .fold-body { margin-top: 8px; padding: 10px 12px; font-size: 12px; 
         <td><input class="t-price" id="t-op-p" type="number" min="-0.1" max="0.5" step="0.001" value="0.092"></td>
       </tr>
       <tr class="tariff-action">
-        <td colspan="4"><span class="tariff-action-lbl">EMS动作</span>可靠性充电（不比价）：电池慢充至90% SOC，为肩峰放电做准备，成本由光伏/BESS资产方承担，不计入AIDC账单</td>
+        <td colspan="4"><span class="tariff-action-lbl">EMS动作</span><span id="desc-offpeak">可靠性充电（不比价）：电池慢充至90% SOC，为肩峰放电做准备，成本由光伏/BESS资产方承担，不计入AIDC账单</span></td>
       </tr>
     </tbody>
     <tbody class="tariff-row" data-id="shoulder">
@@ -217,7 +250,7 @@ details.fold .fold-body { margin-top: 8px; padding: 10px 12px; font-size: 12px; 
         <td><input class="t-price" id="t-sh-p" type="number" min="-0.1" max="0.5" step="0.001" value="0.138"></td>
       </tr>
       <tr class="tariff-action">
-        <td colspan="4"><span class="tariff-action-lbl">EMS动作</span>本时段电价高于PPA价：优先光伏/电池供电避免买贵电，电网补缺口</td>
+        <td colspan="4"><span class="tariff-action-lbl">EMS动作</span><span id="desc-shoulder">本时段电价高于PPA价：优先光伏/电池供电避免买贵电，电网补缺口</span></td>
       </tr>
     </tbody>
     <tbody class="tariff-row" data-id="sponge">
@@ -228,7 +261,7 @@ details.fold .fold-body { margin-top: 8px; padding: 10px 12px; font-size: 12px; 
         <td><input class="t-price" id="t-sp-p" type="number" min="-0.1" max="0.5" step="0.001" value="-0.018" title="按AEMO最新一期(2026年Q1，2026年4月发布)数据：南澳白天(9-17点)负/零电价占比已达67%的时段(Q4 2025一度高见88%，Q1 2025同期66.7%)，NEM整体负值区间均价约-$17.7/MWh(Q1 2025约-$35.4/MWh、Q4 2025约-$19.4/MWh)——负电价越来越频繁，但单次负得没那么深。窗口10-16点是跨三季的保守估算(冬季光伏出力高的时段本身就集中在10-15点附近，夏季/春秋分实际能到9-17点，此处未按季节细分，取中间偏保守值)，价格取-$0.018/kWh代表性估算，均可自行调整。"></td>
       </tr>
       <tr class="tariff-action">
-        <td colspan="4"><span class="tariff-action-lbl">EMS动作</span>本时段电价低于PPA价：负荷改由电网直供，光伏全部拿去充电池/外送，不走PPA计费，充满备高峰用</td>
+        <td colspan="4"><span class="tariff-action-lbl">EMS动作</span><span id="desc-sponge">本时段电价低于PPA价：负荷改由电网直供，光伏全部拿去充电池/外送，不走PPA计费，充满备高峰用</span></td>
       </tr>
     </tbody>
     <tbody class="tariff-row" data-id="peak">
@@ -239,14 +272,14 @@ details.fold .fold-body { margin-top: 8px; padding: 10px 12px; font-size: 12px; 
         <td><input class="t-price" id="t-pk-p" type="number" min="-0.1" max="0.5" step="0.001" value="0.244"></td>
       </tr>
       <tr class="tariff-action">
-        <td colspan="4"><span class="tariff-action-lbl">EMS动作</span>本时段电价远高于PPA价：太阳能优先+电池补缺口，电网兜底</td>
+        <td colspan="4"><span class="tariff-action-lbl">EMS动作</span><span id="desc-peak">本时段电价远高于PPA价：太阳能优先+电池补缺口，电网兜底</span></td>
       </tr>
     </tbody>
   </table>
   <div class="sep"></div>
   <details class="fold">
     <summary>调度规则与来源</summary>
-    <div class="fold-body">比价式调度 + 深夜可靠性充电 + 负电价折扣直供：肩峰/超低谷/高峰三段每小时比较电网分时电价 vs 场内PPA电价，谁便宜谁供负荷。深夜段单独例外：不参与比价，电池固定慢充到90% SOC。超低谷时段若电池已充满、光伏仍有余量顺其自然直供负载，这部分改按「负电价时段光伏折扣直供价」计费。开始/结束填整点小时（0–23）。深夜段跨午夜(21→07)自动识别。负电价可填负数。<br><br>来源: SAPN / Amber Energy AU · 2024（时段与高峰/肩峰/深夜电价）；超低谷负电价参考 AEMO Quarterly Energy Dynamics Q1 2026。电价为4段静态简化模型，非分钟级浮动价。三季光伏曲线为示意性估算，非实测数据。负电价折扣价为可调假设，不代表已谈成的合同条款。</div>
+    <div class="fold-body" id="bottom-note">比价式调度 + 深夜可靠性充电 + 负电价折扣直供：肩峰/超低谷/高峰三段每小时比较电网分时电价 vs 场内PPA电价，谁便宜谁供负荷。深夜段单独例外：不参与比价，电池固定慢充到90% SOC。超低谷时段若电池已充满、光伏仍有余量顺其自然直供负载，这部分改按「负电价时段光伏折扣直供价」计费。开始/结束填整点小时（0–23）。深夜段跨午夜(21→07)自动识别。负电价可填负数。<br><br>来源: SAPN / Amber Energy AU · 2024（时段与高峰/肩峰/深夜电价）；超低谷负电价参考 AEMO Quarterly Energy Dynamics Q1 2026。电价为4段静态简化模型，非分钟级浮动价。三季光伏曲线为示意性估算，非实测数据。负电价折扣价为可调假设，不代表已谈成的合同条款。</div>
   </details>
 </div>
 
@@ -269,6 +302,11 @@ details.fold .fold-body { margin-top: 8px; padding: 10px 12px; font-size: 12px; 
     <div class="kpi">
       <div class="kpi-lbl">年度电费 $</div>
       <div class="kpi-val" id="k-annual">—</div>
+    </div>
+    <div class="kpi gain mode-aidc-only" hidden>
+      <div class="kpi-lbl">放电套利年收入 $</div>
+      <div class="kpi-val" id="k-arbitrage">—</div>
+      <div class="kpi-sub" id="k-arbitrage-sub">已计入年节省，非额外收入</div>
     </div>
     <div class="kpi">
       <div class="kpi-lbl">光伏覆盖率</div>
@@ -299,14 +337,16 @@ details.fold .fold-body { margin-top: 8px; padding: 10px 12px; font-size: 12px; 
     <div class="card-desc">比价式调度。超低谷电网直供、光伏充电池；肩峰/高峰光伏+电池优先。</div>
     <details class="fold">
       <summary>调度与计价</summary>
-      <div class="fold-body">肩峰/超低谷/高峰每小时比较电网分时电价与场内PPA电价，谁便宜谁供负荷。默认只有超低谷(10-16点)电网价低于PPA价。深夜(21-7点)电池固定慢充到90% SOC，为肩峰放电做准备——这段充电成本由光伏/BESS资产方承担，不计入AIDC账单。场内光伏直供+电池放电按场内PPA电价计费（仅限电网价≥PPA价的时段）；电网进口按分时电价计费；卖给电网的多余电量收入不计入AIDC账单。超低谷时段电池已满、光伏仍溢出直供负载的部分，改按负电价时段光伏折扣直供价计费。</div>
+      <div class="fold-body" id="chart-callout">肩峰/超低谷/高峰每小时比较电网分时电价与场内PPA电价，谁便宜谁供负荷。默认只有超低谷(10-16点)电网价低于PPA价。深夜(21-7点)电池固定慢充到90% SOC，为肩峰放电做准备——这段充电成本由光伏/BESS资产方承担，不计入AIDC账单。场内光伏直供+电池放电按场内PPA电价计费（仅限电网价≥PPA价的时段）；电网进口按分时电价计费；卖给电网的多余电量收入不计入AIDC账单。超低谷时段电池已满、光伏仍溢出直供负载的部分，改按负电价时段光伏折扣直供价计费。</div>
     </details>
     <div class="chart-wrap tall"><canvas id="cPower"></canvas></div>
     <div class="window-legend">
       <div class="legend-item"><div class="legend-dot" style="background:oklch(0.58 0.08 85)"></div>光伏消纳</div>
       <div class="legend-item"><div class="legend-dot" style="background:oklch(0.45 0.11 155)"></div>BESS放电</div>
       <div class="legend-item"><div class="legend-dot" style="background:oklch(0.42 0.12 255)"></div>电网进口</div>
-      <div class="legend-item"><div class="legend-dot" style="background:oklch(0.50 0.08 295)"></div>BESS充电</div>
+      <div class="legend-item"><div class="legend-dot" style="background:oklch(0.52 0.08 195)"></div>光伏充电</div>
+      <div class="legend-item"><div class="legend-dot" style="background:oklch(0.65 0.14 350)"></div>电网充电</div>
+      <div class="legend-item mode-aidc-only" hidden><div class="legend-dot" style="background:oklch(0.50 0.08 295)"></div>放电套利</div>
       <div class="legend-item"><div style="width:18px;height:2px;background:oklch(0.55 0.19 25);margin-top:1px"></div>总负载</div>
       <div class="legend-item"><div class="legend-dot" style="background:color-mix(in oklab, oklch(0.55 0.19 25) 45%, transparent)"></div>高峰</div>
       <div class="legend-item"><div class="legend-dot" style="background:color-mix(in oklab, oklch(0.58 0.08 85) 50%, transparent)"></div>肩峰</div>
@@ -321,7 +361,7 @@ details.fold .fold-body { margin-top: 8px; padding: 10px 12px; font-size: 12px; 
       <div class="chart-wrap"><canvas id="cSOC"></canvas></div>
     </div>
     <div class="card">
-      <div class="card-title">每小时电网成本 ($/hr)</div>
+      <div class="card-title" id="cost-chart-title">每小时电网成本 ($/hr)</div>
       <div class="chart-wrap" style="height:220px"><canvas id="cCost"></canvas></div>
     </div>
   </div>
@@ -338,7 +378,7 @@ details.fold .fold-body { margin-top: 8px; padding: 10px 12px; font-size: 12px; 
     <div style="overflow-x:auto"><table class="dispatch-table" id="dtable">
       <thead><tr>
         <th>时段</th><th>电价窗口</th><th>光伏(MW)</th><th>BESS动作</th>
-        <th>电网进口(MW)</th><th>SOC(MWh)</th><th>$/hr</th>
+        <th>电网进口(MW)</th><th id="th-grid-export">光伏外送(MW)</th><th>SOC(MWh)</th><th>$/hr</th>
       </tr></thead>
       <tbody id="dtbody"></tbody>
     </table></div>
@@ -410,7 +450,7 @@ const WINDOW_COLORS={
 // ─── EMS Simulation (rule-based dispatch, runs 3 days to stabilize)
 // `solarProfile` defaults to the summer shape for backward compatibility, but callers
 // should pass SOLAR_PROFILES[season] explicitly.
-function simulate(P, T, solarProfile){
+function simulateLegacy(P, T, solarProfile){
   if(!T) T=getTariffWindows();
   if(!solarProfile) solarProfile=SOLAR_PROFILES.summer;
   const aidc   = P.aidc_it * P.pue;
@@ -535,12 +575,113 @@ function simulate(P, T, solarProfile){
       const negWindowSolarRate = (price < P.ppa) ? P.ppaNeg : P.ppa;
       const cost = (gridToLoad * price + solarToLoad * negWindowSolarRate + bDischarge * P.ppa) * 1000;
 
-      results.push({h, win, solar, solarToLoad, bCharge, bDischarge,
-                    grid: clampedGrid, soc, price, cost,
+      // Display-only: which physical source funded this hour's charge (split-color chart).
+      const solarSurplusForCharge = Math.max(0, solar - solarToLoad);
+      const chargeFromSolar = Math.min(bCharge, solarSurplusForCharge);
+      const chargeFromGrid  = bCharge - chargeFromSolar;
+
+      results.push({h, win, solar, solarToLoad, bCharge, chargeFromSolar, chargeFromGrid,
+                    bDischargeToLoad: bDischarge, bDischargeToGrid: 0, bDischarge,
+                    grid: clampedGrid, gridExport: solarExport, soc, price, cost,
                     solarExport, aidc, unmet});
     }
   }
   return results;
+}
+
+function simulateAidc(P, T, solarProfile){
+  if(!T) T=getTariffWindows();
+  if(!solarProfile) solarProfile=SOLAR_PROFILES.summer;
+  const aidc   = P.aidc_it * P.pue;
+  const socMin = P.bcap * P.socmin/100;
+  const socMax = P.bcap * P.socmax/100;
+  let soc      = (socMin+socMax)/2;
+  let results  = [];
+
+  for(let day=0;day<3;day++){
+    results=[];
+    for(let h=0;h<24;h++){
+      const win   = getWindow(h, T);
+      const price = getPrice(h, P, T);
+      const solar = P.solar_peak * solarProfile[h] * P.cf;
+      let bCharge=0, bDischargeToLoad=0, bDischargeToGrid=0;
+
+      if(win === 'offpeak'){
+        bCharge = Math.min(P.bpow * 0.6, socMax - soc, Math.max(0, P.glim - aidc + solar));
+      } else if(price < P.ppa){
+        const gridForLoad = Math.min(aidc, P.glim);
+        const remainingHeadroom = Math.max(0, P.glim - gridForLoad);
+        bCharge = Math.min(P.bpow, socMax - soc, solar + remainingHeadroom);
+      } else {
+        const deficit = Math.max(0, aidc - solar);
+        bDischargeToLoad = Math.min(P.bpow, deficit, soc - socMin);
+        const surplus = Math.max(0, solar - aidc);
+        if(surplus > 0 && soc < socMax){
+          bCharge = Math.min(surplus, P.bpow, socMax - soc);
+        }
+        if(P.arbitrageEnabled && win === 'peak' && bCharge <= 0){
+          const nextHourStillPeak = getWindow((h+1)%24, T) === 'peak';
+          if(!nextHourStillPeak){
+            const remainingPower  = Math.max(0, P.bpow - bDischargeToLoad);
+            const remainingEnergy = Math.max(0, soc - socMin - bDischargeToLoad);
+            bDischargeToGrid = Math.min(remainingPower, remainingEnergy);
+          }
+        }
+      }
+
+      let gridImportNeed = aidc + bCharge - solar - bDischargeToLoad;
+      if(gridImportNeed > P.glim){
+        const excess = gridImportNeed - P.glim;
+        bCharge = Math.max(0, bCharge - excess);
+        gridImportNeed = P.glim;
+      }
+      const actualGridImport = Math.max(0, aidc + bCharge - solar - bDischargeToLoad);
+      const clampedGrid = Math.min(actualGridImport, P.glim);
+      const unmet = Math.max(0, actualGridImport - P.glim);
+
+      const solarExport = Math.max(0, solar - aidc - bCharge + bDischargeToLoad);
+      const totalGridExport = solarExport + bDischargeToGrid;
+
+      soc = Math.max(socMin, Math.min(socMax, soc + bCharge - bDischargeToLoad - bDischargeToGrid));
+
+      let gridToLoad, solarToLoad;
+      if(price < P.ppa){
+        gridToLoad  = Math.min(clampedGrid, Math.max(0, aidc - bDischargeToLoad));
+        solarToLoad = Math.max(0, aidc - bDischargeToLoad - gridToLoad);
+      } else {
+        solarToLoad = Math.min(solar, aidc);
+        gridToLoad  = Math.max(0, aidc - solarToLoad - bDischargeToLoad);
+      }
+
+      const solarSurplusForCharge = Math.max(0, solar - solarToLoad);
+      const chargeFromSolar = Math.min(bCharge, solarSurplusForCharge);
+      const chargeFromGrid  = bCharge - chargeFromSolar;
+
+      const negWindowSolarRate = (price < P.ppa) ? P.ppaNeg : P.ppa;
+      const cost = (
+          gridToLoad * price
+        + solarToLoad * negWindowSolarRate
+        + chargeFromSolar * negWindowSolarRate
+        + chargeFromGrid * price
+        - bDischargeToGrid * P.bessExportPrice
+      ) * 1000;
+
+      const bDischarge = bDischargeToLoad + bDischargeToGrid;
+      results.push({h, win, solar, solarToLoad, bCharge, chargeFromSolar, chargeFromGrid,
+                    bDischargeToLoad, bDischargeToGrid, bDischarge,
+                    grid: clampedGrid, gridExport: totalGridExport, soc, price, cost,
+                    solarExport, aidc, unmet});
+    }
+  }
+  return results;
+}
+
+let CALC_MODE = 'legacy';
+const PPA_NEG_DEFAULT = { legacy: 0.035, aidc: 0.025 };
+let ppaNegByMode = { legacy: 0.035, aidc: 0.025 };
+let _lastMode = null;
+function simulate(P, T, solarProfile){
+  return CALC_MODE === 'aidc' ? simulateAidc(P, T, solarProfile) : simulateLegacy(P, T, solarProfile);
 }
 
 function sweepSim(baseP, T, solarProfile){
@@ -657,8 +798,8 @@ function drawPowerChart(canvas,results,T){
   const {ctx,w,h}=fitCanvas(canvas);
   ctx.clearRect(0,0,w,h);
   const area={left:44,top:12,width:w-44-8,height:h-12-26};
-  const pos=results.map(r=>r.solarToLoad+r.bDischarge+r.grid);
-  const neg=results.map(r=>-r.bCharge);
+  const pos=results.map(r=>r.solarToLoad+r.bDischargeToLoad+r.grid);
+  const neg=results.map(r=>-(r.bCharge+r.bDischargeToGrid));
   const aidcArr=results.map(r=>r.aidc);
   const {ticks,min,max}=niceTicks(Math.min(0,...neg), Math.max(0.1,...pos,...aidcArr), 5);
   const yToPx=v=>area.top+area.height*(1-(v-min)/(max-min));
@@ -671,7 +812,7 @@ function drawPowerChart(canvas,results,T){
   results.forEach((r,i)=>{
     const x0=area.left+i*colW+colW*0.14, bw=colW*0.72;
     let cum=0;
-    [[r.solarToLoad,'oklch(0.58 0.08 85 / 0.80)'],[r.bDischarge,'oklch(0.45 0.11 155 / 0.80)'],[r.grid,'oklch(0.42 0.12 255 / 0.80)']]
+    [[r.solarToLoad,'oklch(0.58 0.08 85 / 0.80)'],[r.bDischargeToLoad,'oklch(0.45 0.11 155 / 0.80)'],[r.grid,'oklch(0.42 0.12 255 / 0.80)']]
       .forEach(([v,color])=>{
         if(v<=0) return;
         const y1=yToPx(cum), y2=yToPx(cum+v);
@@ -679,11 +820,15 @@ function drawPowerChart(canvas,results,T){
         ctx.fillRect(x0,y2,bw,y1-y2);
         cum+=v;
       });
-    if(r.bCharge>0.0005){
-      const y0=yToPx(0), y1=yToPx(-r.bCharge);
-      ctx.fillStyle='oklch(0.50 0.08 295 / 0.70)';
-      ctx.fillRect(x0,y0,bw,y1-y0);
-    }
+    let cumNeg=0;
+    [[r.chargeFromSolar,'oklch(0.52 0.08 195 / 0.70)'],[r.chargeFromGrid,'oklch(0.65 0.14 350 / 0.70)'],[r.bDischargeToGrid,'oklch(0.50 0.08 295 / 0.80)']]
+      .forEach(([v,color])=>{
+        if(v<=0.0005) return;
+        const y0=yToPx(-cumNeg), y1=yToPx(-cumNeg-v);
+        ctx.fillStyle=color;
+        ctx.fillRect(x0,y0,bw,y1-y0);
+        cumNeg+=v;
+      });
   });
 
   ctx.strokeStyle='oklch(0.90 0 0)'; ctx.lineWidth=1;
@@ -827,15 +972,45 @@ window.addEventListener('resize',()=>{
 
 function getParams(){
   const g=id=>parseFloat(document.getElementById(id).value);
+  const arbEl=document.getElementById('s-arbitrage-enable');
   return{
     aidc_it:g('s-aidc'), pue:g('s-pue'),
     solar_peak:g('s-solar'), cf:g('s-cf'),
     bcap:g('s-bcap'), bpow:g('s-bpow'),
     socmin:g('s-socmin'), socmax:g('s-socmax'),
     glim:g('s-glim'), fit:g('s-fit'), ppa:g('s-ppa'), ppaNeg:g('s-ppa-neg'),
+    bessExportPrice:g('s-bess-export'), arbitrageEnabled: arbEl ? arbEl.checked : true,
     // legacy fallback prices (used only if tariff table unreadable)
     shoulder:0.138, sponge:0.040, peak:0.244, offpeak:0.092,
   };
+}
+
+function bActionLabel(r, mode){
+  if(r.bCharge>0.01){
+    const hasSolar = r.chargeFromSolar > 0.01, hasGrid = r.chargeFromGrid > 0.01;
+    const mixed = hasSolar && hasGrid;
+    const srcNote = mixed ? `光伏${r.chargeFromSolar.toFixed(2)}+电网${r.chargeFromGrid.toFixed(2)}，` : '';
+    if(r.win==='offpeak'){
+      return mode==='aidc'
+        ? `深夜可靠性充电 +${r.bCharge.toFixed(2)}MW（计入AIDC成本）`
+        : `深夜可靠性充电 +${r.bCharge.toFixed(2)}MW`;
+    }
+    const verb = mixed ? '混合充电' : hasGrid ? (mode==='aidc'?'电网充电':'电网回充') : (mode==='aidc'?'光伏充电':'光伏余量充电');
+    const costNote = mode==='aidc'
+      ? `${srcNote}计入AIDC成本`
+      : srcNote;
+    const suffix = costNote ? `（${costNote}）` : '';
+    return `${verb} +${r.bCharge.toFixed(2)}MW${suffix}`;
+  }
+  if(r.bDischargeToGrid>0.01){
+    return `放电套利 -${r.bDischargeToGrid.toFixed(2)}MW → 电网`;
+  }
+  if(r.bDischargeToLoad>0.01){
+    return mode==='aidc'
+      ? `放电供负荷 -${r.bDischargeToLoad.toFixed(2)}MW（免费）`
+      : `放电 -${r.bDischargeToLoad.toFixed(2)}MW`;
+  }
+  return '待机';
 }
 
 function updateUI(P,results,annual){
@@ -885,9 +1060,19 @@ function updateUI(P,results,annual){
   document.getElementById('k-blend').textContent='$'+blended.toFixed(4);
   document.getElementById('k-blend-vs').textContent='vs 基准 $'+baselineBlended.toFixed(4);
   document.getElementById('k-saving').textContent='$'+annualSavings.toLocaleString('en',{maximumFractionDigits:0});
-  document.getElementById('k-saving-pct').textContent='节省 '+savingPct.toFixed(1)+'%（三季混合）';
+  document.getElementById('k-saving-pct').textContent=CALC_MODE==='aidc'
+    ? '节省 '+savingPct.toFixed(1)+'%（三季混合，套利已计入）'
+    : '节省 '+savingPct.toFixed(1)+'%（三季混合）';
   document.getElementById('k-daily').textContent='$'+totalCost.toFixed(0);
   document.getElementById('k-annual').textContent='$'+annualCost.toLocaleString('en',{maximumFractionDigits:0});
+  const arbEl=document.getElementById('k-arbitrage');
+  const arbSub=document.getElementById('k-arbitrage-sub');
+  if(arbEl) arbEl.textContent='$'+annual.arbitrage.toLocaleString('en',{maximumFractionDigits:0});
+  if(arbSub){
+    arbSub.textContent=annual.arbitrage>0.5
+      ? '已计入年节省，非额外收入'
+      : '高峰末小时无剩余可卖';
+  }
   document.getElementById('k-solar').textContent=solarCov.toFixed(1)+'%';
   document.getElementById('k-peak-import').textContent=peakMax.toFixed(2)+'MW';
   document.getElementById('k-peak-avoid').textContent=peakLocalMWh.toFixed(2)+'MWh';
@@ -909,32 +1094,24 @@ function updateUI(P,results,annual){
                sponge:'<span class="tag tag-sponge">超低谷</span>',
                shoulder:'<span class="tag tag-shoulder">肩峰</span>',
                offpeak:'<span class="tag tag-offpeak">深夜</span>'};
+  const exportTh=document.getElementById('th-grid-export');
+  if(exportTh) exportTh.textContent=CALC_MODE==='aidc' ? '出口(光伏+套利)' : '光伏外送(MW)';
   tbody.innerHTML=results.map(r=>{
-    // Distinguish *why* the battery is charging: from solar surplus (free/already-generated
-    // energy) vs a deliberate grid-funded recharge at cheap TOU price (arbitrage — buying now
-    // to avoid buying at peak price later). Without this label the sponge-window grid charge
-    // looks like a bug ("why buy grid power while load isn't even solar-covered?").
-    const solarSurplus=Math.max(0, r.solar - r.aidc);
-    let bAction='待机';
-    if(r.bCharge>0.01){
-      bAction = r.win==='offpeak'
-        ? `深夜可靠性充电 +${r.bCharge.toFixed(2)}MW`
-        : r.bCharge <= solarSurplus + 0.01
-          ? `光伏余量充电 +${r.bCharge.toFixed(2)}MW`
-          : `电网回充 +${r.bCharge.toFixed(2)}MW`;
-    } else if(r.bDischarge>0.01){
-      bAction = `放电 -${r.bDischarge.toFixed(2)}MW`;
-    }
+    const bAction=bActionLabel(r, CALC_MODE);
     const costColor=r.cost<0?'oklch(0.45 0.11 155)':'inherit';
     const gridCell=r.unmet>0.001
       ? `<span style="color:oklch(0.55 0.19 25);font-weight:600">${r.grid.toFixed(3)} −${r.unmet.toFixed(2)}</span>`
       : r.grid.toFixed(3);
+    const exportCell = r.gridExport>0.001
+      ? r.gridExport.toFixed(3)
+      : '0.000';
     return `<tr>
       <td>${HLABELS[r.h]}</td>
       <td>${tags[r.win]}</td>
       <td>${r.solarToLoad.toFixed(2)}</td>
       <td>${bAction}</td>
       <td>${gridCell}</td>
+      <td>${exportCell}</td>
       <td>${r.soc.toFixed(2)}</td>
       <td style="color:${costColor}">${r.cost.toFixed(3)}</td>
     </tr>`;
@@ -978,15 +1155,23 @@ function updateSweep(P,T,solarProfile){
 }
 
 // ─── Slider sync
+const SLIDER_MAP=[
+  ['s-aidc','v-aidc','',1],['s-pue','v-pue','',2],
+  ['s-solar','v-solar','',2],['s-cf','v-cf','',2],
+  ['s-bcap','v-bcap','',1],['s-bpow','v-bpow','',1],
+  ['s-socmin','v-socmin','',0],['s-socmax','v-socmax','',0],
+  ['s-glim','v-glim','',1],['s-fit','v-fit','',2],['s-ppa','v-ppa','',3],['s-ppa-neg','v-ppa-neg','',3],
+  ['s-bess-export','v-bess-export','',3],
+];
+function refreshSliderLabels(){
+  SLIDER_MAP.forEach(([sid,vid,pre,dec])=>{
+    const el=document.getElementById(sid);
+    const lab=document.getElementById(vid);
+    if(el && lab) lab.textContent=pre+parseFloat(el.value).toFixed(dec);
+  });
+}
 function syncSliders(){
-  const map=[
-    ['s-aidc','v-aidc','',1],['s-pue','v-pue','',2],
-    ['s-solar','v-solar','',2],['s-cf','v-cf','',2],
-    ['s-bcap','v-bcap','',1],['s-bpow','v-bpow','',1],
-    ['s-socmin','v-socmin','',0],['s-socmax','v-socmax','',0],
-    ['s-glim','v-glim','',1],['s-fit','v-fit','',2],['s-ppa','v-ppa','',3],['s-ppa-neg','v-ppa-neg','',3],
-  ];
-  map.forEach(([sid,vid,pre,dec])=>{
+  SLIDER_MAP.forEach(([sid,vid,pre,dec])=>{
     const el=document.getElementById(sid);
     const update=()=>{
       document.getElementById(vid).textContent=pre+parseFloat(el.value).toFixed(dec);
@@ -995,6 +1180,8 @@ function syncSliders(){
     update();
   });
   document.getElementById('s-season').addEventListener('change', run);
+  const arbEl=document.getElementById('s-arbitrage-enable');
+  if(arbEl) arbEl.addEventListener('change', run);
 }
 
 // Annual estimate: run the same config through all three seasonal day-profiles and
@@ -1003,16 +1190,18 @@ function syncSliders(){
 // real annual simulation, but far less optimistic than the single-day version.
 const SEASON_WEIGHT_DAYS = {summer:122, equinox:121, winter:122}; // ≈365 total
 function computeAnnual(P,T){
-  let cost=0, baseline=0;
+  let cost=0, baseline=0, arbitrage=0;
   for(const season of Object.keys(SOLAR_PROFILES)){
     const r=simulate(P,T,SOLAR_PROFILES[season]);
     const dayCost=r.reduce((s,x)=>s+x.cost,0);
     const dayBaseline=r.reduce((s,x)=>s+Math.max(0,x.aidc*x.price*1000),0);
+    const dayArbitrage=r.reduce((s,x)=>s+x.bDischargeToGrid*P.bessExportPrice*1000,0);
     const days=SEASON_WEIGHT_DAYS[season];
     cost+=dayCost*days;
     baseline+=dayBaseline*days;
+    arbitrage+=dayArbitrage*days;
   }
-  return {cost, baseline};
+  return {cost, baseline, arbitrage};
 }
 
 function run(){
@@ -1030,6 +1219,7 @@ const DEFAULTS={
   's-aidc':'3.0','s-pue':'1.20','s-season':'summer','s-solar':'4.95','s-cf':'0.85',
   's-bcap':'10','s-bpow':'5','s-socmin':'10','s-socmax':'90',
   's-glim':'5','s-fit':'0.05','s-ppa':'0.07','s-ppa-neg':'0.035',
+  's-bess-export':'0.20',
   't-op-s':'21','t-op-e':'7','t-op-p':'0.092',
   't-sh-s':'7','t-sh-e':'10','t-sh-p':'0.138',
   't-sp-s':'10','t-sp-e':'16','t-sp-p':'-0.018',
@@ -1040,19 +1230,104 @@ function resetAll(){
     const el=document.getElementById(id);
     if(el) el.value=val;
   });
-  document.querySelectorAll('input[type=range]').forEach(el=>el.dispatchEvent(new Event('input')));
+  const arb=document.getElementById('s-arbitrage-enable');
+  if(arb) arb.checked=true;
+  ppaNegByMode = { ...PPA_NEG_DEFAULT };
+  const legacyRadio=document.querySelector('input[name="calc-mode"][value="legacy"]');
+  if(legacyRadio) legacyRadio.checked=true;
+  _lastMode=null;
+  refreshSliderLabels();
+  applyMode();
+}
+
+const MODE_TEXT = {
+  aidc: {
+    subtitle: 'SAPN TOU · 4.95 MW solar (PPA) · 5 MW / 10 MWh BESS (AIDC-owned) · South Australia',
+    bessHeading: 'BESS（AIDC自有）',
+    fitLabel: '光伏直接上网电价 (FIT，仍归光伏方，不计入AIDC账单)',
+    fitTitle: '光伏(直接、不经过电池)多余电量卖回电网的收入——BESS已归属AIDC后，这部分仍是纯光伏SPV自己的收入，因为这些电量从未进入AIDC自有电池，不冲抵AIDC的电费账单。仅供参考。与下方BESS放电套利收入是两码事。',
+    ppaHeading: '光伏 PPA（电池已自有，不适用PPA）',
+    ppaLabel: '光伏PPA电价 ($/kWh)',
+    ppaTitle: 'AIDC向第三方光伏资产方购买光伏电量的价格——不论这部分光伏电量是直供AIDC负荷，还是拿去给AIDC自有电池充电，都按此价格付费。电网进口仍按SAPN分时电价单独计费。',
+    ppaNegLabel: '负电价时段光伏折扣价 ($/kWh，直供负荷+充AIDC电池均适用)',
+    ppaNegTitle: '负电价/超低谷时段(电网价<PPA价)，AIDC电池已充满、光伏仍有余量、顺其自然直供AIDC负载的那部分电量，改按这个折扣价计费而非全额PPA价。BESS归属AIDC后，这个折扣同样适用于同一时段里光伏给AIDC电池充电的部分。默认$0.025。',
+    ppaNote: '光伏仍由独立主体持有，按PPA价格把光伏电量(直供负荷或充AIDC电池)卖给AIDC；电网进口仍按SAPN分时电价计费。折扣价滑块默认约PPA价的1/3（$0.025），仅生效于负电价窗口内「AIDC电池已满、光伏自然溢出」这一场景。',
+    offpeakDesc: '可靠性充电（不比价）：电池慢充至90% SOC，为肩峰放电做准备。BESS归属AIDC后，这段电网充电成本按深夜电价直接计入AIDC账单',
+    shoulderDesc: '本时段电价高于PPA价：优先光伏/电池供电避免买贵电，电网补缺口；不做放电套利，保留电量给高峰',
+    spongeDesc: '本时段电价低于PPA价：负荷改由电网直供，光伏全部拿去充AIDC电池/外送；电网若还有余量也会充AIDC电池——常是负电价，充电反而收钱',
+    peakDesc: '本时段电价远高于PPA价：太阳能优先+电池补缺口供负荷；仅在本窗口最后一小时，若电池满足了本窗口全部负荷后仍有余量，才放电套利卖给电网',
+    bottomNote: '比价式调度 + 深夜可靠性充电 + 负电价折扣 + 高峰放电套利。肩峰/超低谷/高峰每小时比较电网分时电价 vs 光伏PPA。深夜不比价，电池慢充到90% SOC，充电成本计入AIDC。光伏直供+充AIDC电池按PPA/折扣价计费；电网充电按当时SAPN电价计费；放电供负荷不计费（已在充电时付过）。高峰最后一小时剩余容量按BESS放电上网电价卖电网，收入计入AIDC。开始/结束填整点小时（0–23）。深夜段跨午夜自动识别。负电价可填负数。<br><br>来源: SAPN / Amber Energy AU · 2024；超低谷负电价参考 AEMO QED Q1 2026。三季光伏曲线为示意。负电价折扣价、BESS放电上网电价均为可调假设。本模式假设BESS归属AIDC，与「第三方PPA」模式不可直接把同一数字当同一合同。',
+    chartCallout: '比价式调度：超低谷电网直供、光伏优先充AIDC电池；肩峰/高峰光伏+电池优先。深夜固定充到90% SOC，充电成本计入AIDC。放电供负荷免费。高峰最后一小时、负荷已满足后，剩余容量可按BESS放电上网电价卖电网。功率图负半轴：青绿=光伏充电，粉=电网充电，紫=放电套利。',
+    costChartTitle: '每小时电网成本 ($/hr，含BESS放电套利收入)',
+  },
+  legacy: {
+    subtitle: 'SAPN TOU · 4.95 MW solar · 5 MW / 10 MWh BESS · South Australia',
+    bessHeading: 'BESS',
+    fitLabel: '光伏上网电价 (FIT，不计入AIDC账单)',
+    fitTitle: '光伏多余电量卖回电网的收入——记在光伏/BESS资产方(SPV)账上，不冲抵AIDC的电费账单。仅供参考/展示外送电量的经济价值。',
+    ppaHeading: '场内 PPA',
+    ppaLabel: '场内PPA电价 ($/kWh)',
+    ppaTitle: '假设AIDC与场内光伏+BESS资产分属不同主体：AIDC按此PPA价格向资产方购买场内直供的光伏电量+电池放电量(不区分电池里原本是光伏充的还是电网充的)；电网进口仍按SAPN分时电价单独计费。多余电量卖给电网的收入不冲抵AIDC账单(见上方FIT说明)。',
+    ppaNegLabel: '负电价时段光伏折扣直供价 ($/kWh)',
+    ppaNegTitle: '负电价/超低谷时段(电网价<PPA价)，电池充满后光伏仍有余量、顺其自然直供AIDC负载的那部分电量——这时资产方的替代选择是以负电价卖给电网(倒贴钱)或弃光(零收入)，所以理论上愿意接受远低于正常PPA价的折扣价卖给AIDC，双方都比默认选项划算。仅适用于这一细分场景，不影响肩峰/高峰的正常PPA价，也不影响该时段电网直供部分(仍按电网负电价计费)。',
+    ppaNote: '默认视角：光伏+BESS资产由独立主体持有，按PPA价格把场内直供电量+电池放电量卖给AIDC；电网进口部分仍按下方SAPN分时电价单独计费。设为$0可退回同一主体、场内电免费的旧视角。折扣价滑块默认为PPA价的一半，仅生效于负电价窗口内「电池已满、光伏自然溢出供负载」这一具体场景——现实中这类折扣需要双方另行约定，模型里当作可调假设，不代表已有合同条款。',
+    offpeakDesc: '可靠性充电（不比价）：电池慢充至90% SOC，为肩峰放电做准备，成本由光伏/BESS资产方承担，不计入AIDC账单',
+    shoulderDesc: '本时段电价高于PPA价：优先光伏/电池供电避免买贵电，电网补缺口',
+    spongeDesc: '本时段电价低于PPA价：负荷改由电网直供，光伏全部拿去充电池/外送，不走PPA计费，充满备高峰用',
+    peakDesc: '本时段电价远高于PPA价：太阳能优先+电池补缺口，电网兜底',
+    bottomNote: '比价式调度 + 深夜可靠性充电 + 负电价折扣直供：肩峰/超低谷/高峰三段每小时比较电网分时电价 vs 场内PPA电价，谁便宜谁供负荷。深夜段单独例外：不参与比价，电池固定慢充到90% SOC。超低谷时段若电池已充满、光伏仍有余量顺其自然直供负载，这部分改按「负电价时段光伏折扣直供价」计费。开始/结束填整点小时（0–23）。深夜段跨午夜(21→07)自动识别。负电价可填负数。<br><br>来源: SAPN / Amber Energy AU · 2024（时段与高峰/肩峰/深夜电价）；超低谷负电价参考 AEMO Quarterly Energy Dynamics Q1 2026。电价为4段静态简化模型，非分钟级浮动价。三季光伏曲线为示意性估算，非实测数据。负电价折扣价为可调假设，不代表已谈成的合同条款。',
+    chartCallout: '肩峰/超低谷/高峰每小时比较电网分时电价与场内PPA电价，谁便宜谁供负荷。默认只有超低谷(10-16点)电网价低于PPA价。深夜(21-7点)电池固定慢充到90% SOC，为肩峰放电做准备——这段充电成本由光伏/BESS资产方承担，不计入AIDC账单。场内光伏直供+电池放电按场内PPA电价计费（仅限电网价≥PPA价的时段）；电网进口按分时电价计费；卖给电网的多余电量收入不计入AIDC账单。超低谷时段电池已满、光伏仍溢出直供负载的部分，改按负电价时段光伏折扣直供价计费。',
+    costChartTitle: '每小时电网成本 ($/hr)',
+  },
+};
+
+function setLabelText(labelId, textId, text, title){
+  document.getElementById(textId).textContent = text;
+  document.getElementById(labelId).title = title;
+}
+
+function applyMode(){
+  const ppaNegSlider = document.getElementById('s-ppa-neg');
+  if(_lastMode && ppaNegSlider){ ppaNegByMode[_lastMode] = parseFloat(ppaNegSlider.value); }
+  CALC_MODE = document.querySelector('input[name="calc-mode"]:checked').value;
+  if(ppaNegSlider){
+    ppaNegSlider.value = ppaNegByMode[CALC_MODE];
+    const v = document.getElementById('v-ppa-neg');
+    if(v) v.textContent = Number(ppaNegSlider.value).toFixed(3);
+  }
+  _lastMode = CALC_MODE;
+  const t = MODE_TEXT[CALC_MODE];
+  document.getElementById('header-subtitle').textContent = t.subtitle;
+  document.getElementById('bess-heading').textContent = t.bessHeading;
+  setLabelText('fit-label', 'fit-label-text', t.fitLabel, t.fitTitle);
+  document.getElementById('ppa-heading').textContent = t.ppaHeading;
+  setLabelText('ppa-label', 'ppa-label-text', t.ppaLabel, t.ppaTitle);
+  setLabelText('ppa-neg-label', 'ppa-neg-label-text', t.ppaNegLabel, t.ppaNegTitle);
+  document.getElementById('ppa-note').innerHTML = t.ppaNote;
+  document.getElementById('desc-offpeak').textContent = t.offpeakDesc;
+  document.getElementById('desc-shoulder').textContent = t.shoulderDesc;
+  document.getElementById('desc-sponge').textContent = t.spongeDesc;
+  document.getElementById('desc-peak').textContent = t.peakDesc;
+  document.getElementById('bottom-note').innerHTML = t.bottomNote;
+  document.getElementById('chart-callout').innerHTML = t.chartCallout;
+  document.getElementById('cost-chart-title').textContent = t.costChartTitle;
+  document.querySelectorAll('.mode-aidc-only').forEach(el=>{ el.hidden = (CALC_MODE!=='aidc'); });
+  document.querySelector('.kpis').classList.toggle('mode-aidc', CALC_MODE==='aidc');
   run();
 }
 
 // ─── Init
 syncSliders();
 document.getElementById('btn-reset').addEventListener('click', resetAll);
+document.querySelectorAll('input[name="calc-mode"]').forEach(el=>{
+  el.addEventListener('change', applyMode);
+});
 // Wire up tariff table inputs
 document.querySelectorAll('.t-num,.t-price').forEach(el=>{
   el.addEventListener('input', run);
   el.addEventListener('change', run);
 });
-run();
+applyMode();
 </script>
 </body>
 </html>

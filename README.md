@@ -22,6 +22,6 @@ npm run dev
 
 Open `/` (default tab RTX 5090). `?tab=pro6000` · `?tab=compare` · `?tab=gb300`. `?lang=zh` for Simplified Chinese.
 
-Kadina EMS (SAPN TOU + solar + BESS) is a separate static page at `/solarsimulator`. Not a GPU tab.
+Kadina EMS (SAPN TOU + solar + BESS) is a separate static page at `/solarsimulator`. Sidebar toggle compares third-party PPA vs AIDC-owned BESS. Not a GPU tab.
 
 Next.js · TypeScript · Tailwind v4 · shadcn/ui · Recharts. Client-side engine, no auth.
