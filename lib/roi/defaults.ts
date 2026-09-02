@@ -1,6 +1,13 @@
 import type { Gb300Facility, ModelInputs, SkuInputs } from "./types";
 import { DEFAULT_BOM, bomSum, cloneBom } from "./sources";
 
+/** NVL72: 72 GPUs per rack. Not an input. */
+export const GB300_GPUS_PER_RACK = 72;
+/** One MW-class block: 6 racks × 140 kW IT × PUE 1.3 ≈ 1.09 MW. */
+export const GB300_RACK_BLOCK = 6;
+/** Site construction per 6-rack (~1 MW including PUE 1.3) block. */
+export const GB300_SITE_PER_BLOCK = 12_000_000;
+
 export const SKU_LABEL = {
   "5090": "RTX 5090",
   pro6000: "Pro 6000",
@@ -33,7 +40,7 @@ export const DEFAULT_SKU_GB300: SkuInputs = {
   itLoadKw: 140,
   residualPct: 0.1,
   rackCount: 24,
-  gpusPerServer: 72,
+  gpusPerServer: GB300_GPUS_PER_RACK,
 };
 
 export const DEFAULT_GB300_FACILITY: Gb300Facility = {
@@ -48,7 +55,7 @@ export const DEFAULT_GB300_FACILITY: Gb300Facility = {
   usefulLifeYrs: 5,
   hallCount: 1,
   containerCost: 0,
-  siteConstruction: 58_000_000,
+  siteConstruction: (24 / GB300_RACK_BLOCK) * GB300_SITE_PER_BLOCK,
   networkOpexMo: 3750,
   omOpexMo: 2500,
   insurancePctRev: 0.03,
@@ -96,8 +103,8 @@ export const BOUNDS = {
   containerCount: { min: 1, max: 20 },
   serversPerContainer: { min: 1, max: 64 },
   gpusPerServer: { min: 1, max: 8 },
-  rackCount: { min: 1, max: 64 },
-  rackGpus: { min: 1, max: 128 },
+  rackCount: { min: 6, max: 60 },
+  rackGpus: { min: GB300_GPUS_PER_RACK, max: GB300_GPUS_PER_RACK },
   hallCount: { min: 1, max: 20 },
   itLoadKw: { min: 0.5, max: 500 },
   pue: { min: 1.05, max: 1.6 },
@@ -108,6 +115,32 @@ export const BOUNDS = {
   usefulLifeYrs: { min: 3, max: 5 },
   gb300UsefulLifeYrs: { min: 3, max: 10 },
 } as const;
+
+export function snapGb300Racks(n: number): number {
+  const snapped = Math.round(n / GB300_RACK_BLOCK) * GB300_RACK_BLOCK;
+  return Math.min(BOUNDS.rackCount.max, Math.max(BOUNDS.rackCount.min, snapped || GB300_RACK_BLOCK));
+}
+
+export function gb300SiteConstruction(rackCount: number): number {
+  return (snapGb300Racks(rackCount) / GB300_RACK_BLOCK) * GB300_SITE_PER_BLOCK;
+}
+
+/** Snap racks to a 6-rack block and set site construction to $12M per block. */
+export function withGb300RackCount(inputs: ModelInputs, rackCount: number): ModelInputs {
+  const racks = snapGb300Racks(rackCount);
+  return {
+    ...inputs,
+    skuGb300: {
+      ...inputs.skuGb300,
+      rackCount: racks,
+      gpusPerServer: GB300_GPUS_PER_RACK,
+    },
+    gb300Facility: {
+      ...(inputs.gb300Facility ?? DEFAULT_GB300_FACILITY),
+      siteConstruction: gb300SiteConstruction(racks),
+    },
+  };
+}
 
 export const EXCEL_ELEC_PER_KWH = 60 / (8760 / 12);
 export const EXCEL_RENT = {

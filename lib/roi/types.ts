@@ -26,9 +26,9 @@ export type SkuInputs = {
   utilization: number;
   itLoadKw: number;
   residualPct: number;
-  /** GB300 NVL72: rack count. Unset = Reset 24. */
+  /** GB300 NVL72: rack count. Unset = Reset 24. Snaps to multiples of 6. */
   rackCount?: number;
-  /** GB300 NVL72: GPUs per rack. Unset = Reset 72. */
+  /** GB300 NVL72: always 72. Not editable. */
   gpusPerServer?: number;
 };
 

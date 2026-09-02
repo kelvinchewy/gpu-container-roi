@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_INPUTS, EXCEL_ELEC_PER_KWH, EXCEL_RENT } from "./defaults";
+import {
+  DEFAULT_INPUTS,
+  EXCEL_ELEC_PER_KWH,
+  EXCEL_RENT,
+  GB300_GPUS_PER_RACK,
+  gb300SiteConstruction,
+  snapGb300Racks,
+  withGb300RackCount,
+} from "./defaults";
 import { runModel } from "./engine";
 import { chartCaption, usdK, usdParenK, years } from "./format";
 import { parseLocale } from "./i18n";
@@ -196,12 +204,12 @@ describe("GB300 NVL72", () => {
     expect(skuGb300.totalServers).toBe(24);
     expect(skuGb300.totalGpus).toBe(1_728);
     expect(skuGb300.serverCapex).toBe(120_000_000);
-    expect(skuGb300.infraCapex).toBe(58_000_000);
-    expect(skuGb300.totalCapex).toBe(178_000_000);
+    expect(skuGb300.infraCapex).toBe(48_000_000);
+    expect(skuGb300.totalCapex).toBe(168_000_000);
     expect(skuGb300.itLoadTotalKw).toBe(3_360);
     expect(skuGb300.residualCash).toBe(12_000_000);
     expect(DEFAULT_INPUTS.gb300Facility.containerCost).toBe(0);
-    expect(DEFAULT_INPUTS.gb300Facility.siteConstruction).toBe(58_000_000);
+    expect(DEFAULT_INPUTS.gb300Facility.siteConstruction).toBe(48_000_000);
     expect(skuGb300.irr).not.toBeNull();
     expect(Number.isFinite(skuGb300.npv)).toBe(true);
     expect(skuGb300.cashFlows[1]).toBeGreaterThan(0);
@@ -254,7 +262,7 @@ describe("GB300 NVL72", () => {
     expect(air.sku5090.totalGpus).toBe(1_400);
     expect(air.skuGb300.combinedTax).toBeCloseTo(base.skuGb300.combinedTax, 6);
     expect(air.skuGb300.totalGpus).toBe(1_728);
-    expect(air.skuGb300.totalCapex).toBe(178_000_000);
+    expect(air.skuGb300.totalCapex).toBe(168_000_000);
     expect(air.skuGb300.effectiveKwh).toBeCloseTo(base.skuGb300.effectiveKwh, 6);
 
     const hallInputs = {
@@ -274,10 +282,47 @@ describe("GB300 NVL72", () => {
     expect(hall.sku5090.totalCapex).toBe(3_687_000);
     expect(hall.sku5090.effectiveKwh).toBeCloseTo(base.sku5090.effectiveKwh, 6);
     expect(hall.skuGb300.combinedTax).not.toBeCloseTo(base.skuGb300.combinedTax, 6);
-    expect(hall.skuGb300.infraCapex).toBe(116_000_000);
+    expect(hall.skuGb300.infraCapex).toBe(96_000_000);
     expect(hall.skuGb300.totalGpus).toBe(1_728);
     expect(chartCaption(hallInputs, "GB300", "gb300")).toContain("Dallas, TX");
     expect(chartCaption(hallInputs, "RTX 5090")).toContain("Atlanta, GA");
+  });
+
+  it("scales site construction $12M per 6 racks and locks NVL72 at 72 GPUs", () => {
+    expect(snapGb300Racks(7)).toBe(6);
+    expect(snapGb300Racks(10)).toBe(12);
+    expect(snapGb300Racks(1)).toBe(6);
+    expect(snapGb300Racks(64)).toBe(60);
+    expect(gb300SiteConstruction(6)).toBe(12_000_000);
+    expect(gb300SiteConstruction(12)).toBe(24_000_000);
+    expect(gb300SiteConstruction(24)).toBe(48_000_000);
+    expect(gb300SiteConstruction(36)).toBe(72_000_000);
+
+    const twelve = withGb300RackCount(DEFAULT_INPUTS, 12);
+    expect(twelve.skuGb300.rackCount).toBe(12);
+    expect(twelve.skuGb300.gpusPerServer).toBe(GB300_GPUS_PER_RACK);
+    expect(twelve.gb300Facility.siteConstruction).toBe(24_000_000);
+    expect(runModel(twelve).skuGb300.infraCapex).toBe(24_000_000);
+    expect(runModel(twelve).skuGb300.totalGpus).toBe(12 * 72);
+
+    const locked = clampInputs({
+      ...DEFAULT_INPUTS,
+      skuGb300: { ...DEFAULT_INPUTS.skuGb300, gpusPerServer: 36, rackCount: 10 },
+    });
+    expect(locked.skuGb300.gpusPerServer).toBe(72);
+    expect(locked.skuGb300.rackCount).toBe(12);
+
+    const fromRacks = inputsFromSearchParams(new URLSearchParams("c_rc=18"));
+    expect(fromRacks.skuGb300.rackCount).toBe(18);
+    expect(fromRacks.gb300Facility.siteConstruction).toBe(36_000_000);
+    expect(fromRacks.skuGb300.gpusPerServer).toBe(72);
+
+    const override = inputsFromSearchParams(new URLSearchParams("c_rc=18&g_sc=50000000"));
+    expect(override.gb300Facility.siteConstruction).toBe(50_000_000);
+
+    const gpIgnored = inputsFromSearchParams(new URLSearchParams("c_gp=36"));
+    expect(gpIgnored.skuGb300.gpusPerServer).toBe(72);
+    expect(searchParamsFromState("gb300", locked).get("c_gp")).toBeNull();
   });
 });
 

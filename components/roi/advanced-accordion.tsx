@@ -412,7 +412,7 @@ export function Gb300Accordion({
                     onChange={(containerCost) => onFacilityChange({ containerCost })}
                   />
                 </Field>
-                <Field label={t("siteConstruction")}>
+                <Field label={t("siteConstruction")} caption={t("sitePerMwBlock")}>
                   <MoneyInput
                     value={f.siteConstruction}
                     min={0}

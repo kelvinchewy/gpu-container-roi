@@ -108,13 +108,15 @@ export function NumberInput({
   max,
   step = 1,
   className,
+  disabled = false,
 }: {
   value: number;
-  onChange: (value: number) => void;
+  onChange?: (value: number) => void;
   min?: number;
   max?: number;
   step?: number;
   className?: string;
+  disabled?: boolean;
 }) {
   const id = useFieldId();
   const [draft, setDraft] = useState<string | null>(null);
@@ -136,7 +138,7 @@ export function NumberInput({
       setDraft(raw);
       return;
     }
-    onChange(n);
+    onChange?.(n);
     setDraft(raw === String(n) ? null : raw);
   }
 
@@ -149,11 +151,13 @@ export function NumberInput({
       min={min}
       max={max}
       step={step}
+      disabled={disabled}
+      readOnly={disabled}
       onChange={(e) => apply(e.target.value)}
       onBlur={() => {
         if (draft != null) {
           const next = commitNumber(draft, min, max);
-          if (next != null) onChange(next);
+          if (next != null) onChange?.(next);
         }
         setDraft(null);
       }}

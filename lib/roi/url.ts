@@ -5,6 +5,9 @@ import {
   DEFAULT_SKU_5090,
   DEFAULT_SKU_GB300,
   DEFAULT_SKU_PRO6000,
+  GB300_GPUS_PER_RACK,
+  gb300SiteConstruction,
+  snapGb300Racks,
 } from "./defaults";
 import { clamp } from "./finance";
 import { cloneBom, syncBomToPrice, bomSum } from "./sources";
@@ -51,16 +54,8 @@ function clampSku(
 
 function clampGb300Sku(sku: SkuInputs): SkuInputs {
   const next = clampSku(sku, DEFAULT_SKU_GB300.itLoadKw, BOUNDS.gb300RentPerHr);
-  next.rackCount = clampInt(
-    next.rackCount ?? DEFAULT_SKU_GB300.rackCount ?? 24,
-    BOUNDS.rackCount.min,
-    BOUNDS.rackCount.max,
-  );
-  next.gpusPerServer = clampInt(
-    next.gpusPerServer ?? DEFAULT_SKU_GB300.gpusPerServer ?? 72,
-    BOUNDS.rackGpus.min,
-    BOUNDS.rackGpus.max,
-  );
+  next.rackCount = snapGb300Racks(next.rackCount ?? DEFAULT_SKU_GB300.rackCount ?? 24);
+  next.gpusPerServer = GB300_GPUS_PER_RACK;
   return next;
 }
 
@@ -275,17 +270,20 @@ export function inputsFromSearchParams(params: URLSearchParams): ModelInputs {
   }
 
   const cRc = parseNum(params.get("c_rc"));
-  if (cRc != null) next.skuGb300.rackCount = cRc;
-  const cGp = parseNum(params.get("c_gp"));
-  if (cGp != null) next.skuGb300.gpusPerServer = cGp;
+  if (cRc != null) {
+    next.skuGb300.rackCount = cRc;
+    if (params.get("g_sc") == null) {
+      next.gb300Facility.siteConstruction = gb300SiteConstruction(cRc);
+    }
+  }
+  next.skuGb300.gpusPerServer = GB300_GPUS_PER_RACK;
 
   // Old GB300 URLs stored $/GPU-hr (Reset $10). Now billed $/server-hr (Reset $720).
   // New writes set c_ru=s. Missing flag + c_rent ≤ 50 still means GPU-hr.
   const cRent = parseNum(params.get("c_rent"));
   const serverHr = params.get("c_ru") === "s";
   if (cRent != null && cRent <= 50 && !serverHr) {
-    const gpus = next.skuGb300.gpusPerServer ?? DEFAULT_SKU_GB300.gpusPerServer ?? 72;
-    next.skuGb300.gpuRentPerHr = cRent * gpus;
+    next.skuGb300.gpuRentPerHr = cRent * GB300_GPUS_PER_RACK;
   }
 
   if (parseNum(params.get("a_sp")) != null) {
@@ -356,9 +354,6 @@ export function searchParamsFromState(
   const rc = inputs.skuGb300.rackCount;
   const rcDef = d.skuGb300.rackCount ?? 24;
   if (rc != null && !close(rc, rcDef)) params.set("c_rc", String(rc));
-  const gp = inputs.skuGb300.gpusPerServer;
-  const gpDef = d.skuGb300.gpusPerServer ?? 72;
-  if (gp != null && !close(gp, gpDef)) params.set("c_gp", String(gp));
 
   return params;
 }

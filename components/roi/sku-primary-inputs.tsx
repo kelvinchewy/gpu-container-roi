@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { BOUNDS } from "@/lib/roi/defaults";
+import { BOUNDS, GB300_GPUS_PER_RACK } from "@/lib/roi/defaults";
 import { usd } from "@/lib/roi/format";
 import { bomSum, syncBomToPrice } from "@/lib/roi/sources";
 import type { SkuId, SkuInputs } from "@/lib/roi/types";
@@ -45,7 +45,7 @@ export function SkuPrimaryInputs({
   const [rentOpen, setRentOpen] = useState(false);
   const { t } = useT();
   const isRack = skuId === "gb300";
-  const gpus = sku.gpusPerServer ?? 72;
+  const gpus = GB300_GPUS_PER_RACK;
 
   return (
     <div className="grid gap-6">
@@ -70,18 +70,12 @@ export function SkuPrimaryInputs({
                 value={sku.rackCount ?? 24}
                 min={BOUNDS.rackCount.min}
                 max={BOUNDS.rackCount.max}
-                step={1}
+                step={6}
                 onChange={(rackCount) => onChange({ rackCount })}
               />
             </Field>
-            <Field emphasis label={t("gpusPerRack")}>
-              <NumberInput
-                value={gpus}
-                min={BOUNDS.rackGpus.min}
-                max={BOUNDS.rackGpus.max}
-                step={1}
-                onChange={(gpusPerServer) => onChange({ gpusPerServer })}
-              />
+            <Field emphasis label={t("gpusPerRack")} caption={t("nvl72Fixed")}>
+              <NumberInput value={gpus} disabled />
             </Field>
           </FieldRow>
         ) : (

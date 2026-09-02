@@ -91,7 +91,7 @@ Order, top to bottom:
 
 Do not put the other SKU on these tabs.
 
-**GB300 topology (does not use 35 × 8):** one sold unit = one NVL72 rack = 72 GPUs. Reset: 24 racks × $5.0M × 140 kW IT × **$720/server-hr** (`$10/GPU-hr × 72`). `totalServers = rackCount`. Infra = `(gb300Facility.containerCost + siteConstruction) × hallCount` (Reset `$0` + `$58M`). Not Vera Rubin. Compare chrome stays the air-box accordion.
+**GB300 topology (does not use 35 × 8):** one sold unit = one NVL72 rack = **72 GPUs** (locked, not an input). Reset: 24 racks × $5.0M × 140 kW IT × **$720/server-hr** (`$10/GPU-hr × 72`). `totalServers = rackCount`. Racks step by **6** (6–60). Site construction follows racks: **$12M per 6 racks** (~1 MW including PUE 1.3). Reset 24 racks = `$48M`. Infra = `(gb300Facility.containerCost + siteConstruction) × hallCount` (Reset `$0` + `$48M`). Accordion can still override site $ after a rack change. Not Vera Rubin. Compare chrome stays the air-box accordion.
 
 ### Tab 3 — Compare
 
@@ -114,7 +114,7 @@ Follows `obbbaEnabled` and the with-residual series. Breakeven month = `ceil(pay
 
 ## Field contract
 
-Almost every assumption is editable. Frequency is a UX grouping, not a hard lock. Defaults = Excel ScenA except GPU rent (`$0.63` / `$1.73`) and power `$0.06/kWh`. GB300 Reset is not Excel: rack `$5.0M` · **`$720/server-hr`** (`$10/GPU-hr × 72`) · 24 racks · 72 GPUs · 140 kW · container `$0` · site `$58M`. Out-of-bounds values clamp. Per-SKU fields never copy across SKUs. Air-box shared fields update 5090 and Pro 6000 only. `gb300Facility` updates GB300 only. Discount rate and price decay update all SKUs.
+Almost every assumption is editable. Frequency is a UX grouping, not a hard lock. Defaults = Excel ScenA except GPU rent (`$0.63` / `$1.73`) and power `$0.06/kWh`. GB300 Reset is not Excel: rack `$5.0M` · **`$720/server-hr`** (`$10/GPU-hr × 72`) · 24 racks · 72 GPUs (locked NVL72) · 140 kW · container `$0` · site `$48M` (`$12M` × 4 blocks). Out-of-bounds values clamp. Per-SKU fields never copy across SKUs. Air-box shared fields update 5090 and Pro 6000 only. `gb300Facility` updates GB300 only. Discount rate and price decay update all SKUs.
 
 URL search params serialize A + B + C + `g_*` facility + view toggles + `lang=zh`. Missing params = defaults. Legacy GB300 `c_rent` ≤ 50 with no `c_ru=s` is $/GPU-hr and is multiplied by GPUs/rack. New writes set `c_ru=s` so `$50/server-hr` is not migrated.
 
@@ -140,8 +140,8 @@ Show **effective** `$/kWh` next to power: `elecPerKwh × pue`. Input is tariff `
 | `serverPrice` | Server / rack price | `$88,200` | `$191,800` | `$5,000,000` | > 0 |
 | `gpuRentPerHr` | GPU rent ($/GPU-hr) · GB300 Server rent ($/server-hr) | `$0.63` | `$1.73` | `$720` | 0.01–50 · GB300 0.01–5000 |
 | `utilization` | Utilization | `100%` | `100%` | `100%` | 40–100% |
-| `rackCount` | Racks | — | — | `24` | 1–64 integer |
-| `gpusPerServer` | GPUs / rack | — (uses shared 8) | — | `72` | 1–128 on GB300 |
+| `rackCount` | Racks | — | — | `24` | 6–60, step 6 |
+| `gpusPerServer` | GPUs / rack | — (uses shared 8) | — | `72` NVL72 locked | not editable on GB300 |
 
 ### B — Rarely touched (accordion in chrome)
 
@@ -181,7 +181,7 @@ Show **effective** `$/kWh` next to power: `elecPerKwh × pue`. Input is tariff `
 | Key | Default | Shared? | Bounds |
 | --- | --- | --- | --- |
 | `containerCost` | air-box `$400,000` · GB300 `$0` | air-box; copy on `gb300Facility` | ≥ 0 |
-| `siteConstruction` | air-box `$200,000` · GB300 `$58,000,000` | air-box; copy on `gb300Facility` | ≥ 0 |
+| `siteConstruction` | air-box `$200,000` · GB300 `$12M` per 6 racks (Reset 24 → `$48M`) | air-box; copy on `gb300Facility`. GB300 follows rack count when racks change; accordion may override | ≥ 0 |
 | `networkOpexMo` | `$3,750` | air-box; copy on `gb300Facility` | ≥ 0 |
 | `omOpexMo` | `$2,500` | air-box; copy on `gb300Facility` | ≥ 0 |
 | `insurancePctRev` | `3%` | air-box; copy on `gb300Facility` | 0–10% |

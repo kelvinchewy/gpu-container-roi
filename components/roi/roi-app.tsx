@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DEFAULT_INPUTS } from "@/lib/roi/defaults";
+import { DEFAULT_INPUTS, withGb300RackCount } from "@/lib/roi/defaults";
 import { htmlLang, parseLocale, type Locale } from "@/lib/roi/i18n";
 import { cloneBom } from "@/lib/roi/sources";
 import { runModel } from "@/lib/roi/engine";
@@ -78,7 +78,11 @@ export function RoiApp() {
   function patchSku(skuId: SkuId, patch: Partial<SkuInputs>) {
     setInputs((prev) => {
       const key = SKU_STATE_KEY[skuId];
-      return clampInputs({ ...prev, [key]: { ...prev[key], ...patch } });
+      const merged = { ...prev, [key]: { ...prev[key], ...patch } };
+      if (skuId === "gb300" && patch.rackCount != null) {
+        return clampInputs(withGb300RackCount(merged, patch.rackCount));
+      }
+      return clampInputs(merged);
     });
   }
 
