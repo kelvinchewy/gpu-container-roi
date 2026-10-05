@@ -156,7 +156,6 @@ export function SkuPrimaryInputs({
             })}
             <Button
               type="button"
-              variant="outline"
               size="sm"
               disabled={
                 phases.length >= GB300_PHASE_MAX ||
