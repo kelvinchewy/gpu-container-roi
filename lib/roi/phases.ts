@@ -170,6 +170,8 @@ export function addGb300Phase(phases: Gb300Phase[]): Gb300Phase[] {
 
 export function removeGb300Phase(phases: Gb300Phase[], id: string): Gb300Phase[] {
   if (phases.length <= 1) return phases;
+  const firstId = phases[0]?.id;
+  if (id === firstId) return phases;
   const next = phases.filter((p) => p.id !== id);
   return next.length ? next : phases;
 }

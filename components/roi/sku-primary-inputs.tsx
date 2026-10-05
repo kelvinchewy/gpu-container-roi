@@ -90,7 +90,7 @@ export function SkuPrimaryInputs({
                 <div key={phase.id} className="grid gap-3 rounded-xl bg-card p-3 ring-1 ring-foreground/10">
                   <div className="flex min-h-6 items-center justify-between gap-2">
                     <div className="text-xs font-medium">{t("phase", { n: i + 1 })}</div>
-                    {phases.length > 1 ? (
+                    {!first && phases.length > 1 ? (
                       <Button
                         type="button"
                         variant="ghost"

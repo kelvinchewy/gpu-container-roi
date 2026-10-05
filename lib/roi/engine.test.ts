@@ -15,7 +15,7 @@ import { parseLocale } from "./i18n";
 import { breakevenMatrix, clearMatrixCache } from "./matrix";
 import { clampInputs, inputsFromSearchParams, parseTab, searchParamsFromState } from "./url";
 import type { Gb300Phase, ModelInputs } from "./types";
-import { addMonths, phaseCapex, yearMonthIndex } from "./phases";
+import { addGb300Phase, addMonths, phaseCapex, removeGb300Phase, yearMonthIndex } from "./phases";
 
 function run(overrides: Partial<ModelInputs> = {}) {
   return runModel({
@@ -504,6 +504,41 @@ describe("GB300 NVL72", () => {
     expect(threeCards.years[0]?.revenue).toBe(oneCard.years[0]?.revenue);
     expect(threeCards.y1Ncf).toBeCloseTo(oneCard.y1Ncf, 4);
     expect(threeCards.irr).toBeCloseTo(oneCard.irr ?? 0, 8);
+  });
+
+  it("applies carried NOL in a later phase's bonus year", () => {
+    const got = runModel(
+      clampInputs({
+        ...DEFAULT_INPUTS,
+        skuGb300: {
+          ...DEFAULT_INPUTS.skuGb300,
+          rackCount: 24,
+          phases: [
+            { id: "p1", goLive: "2026-12", rackCount: 12 },
+            { id: "p2", goLive: "2027-12", rackCount: 12 },
+          ],
+        },
+      }),
+    ).skuGb300;
+    const y2026 = got.years.find((y) => y.year === 2026);
+    const y2027 = got.years.find((y) => y.year === 2027);
+    expect(y2026?.depreciation).toBeGreaterThan(0);
+    expect(y2026?.nolRemaining).toBeGreaterThan(0);
+    expect(y2027?.depreciation).toBeGreaterThan(0);
+    expect(y2027?.ebitda).toBeGreaterThan(y2027?.depreciation ?? 0);
+    expect(y2026?.nolRemaining).toBeGreaterThan(y2027?.nolRemaining ?? 0);
+    const taxableAfterBonus = (y2027?.ebitda ?? 0) - (y2027?.depreciation ?? 0);
+    expect(y2027?.tax).toBeLessThan(taxableAfterBonus * got.combinedTax - 1);
+  });
+
+  it("keeps phase 1 when remove is called on it", () => {
+    const phases = [
+      { id: "p1", goLive: "2026-03", rackCount: 12 },
+      { id: "p2", goLive: "2026-12", rackCount: 6 },
+    ];
+    expect(removeGb300Phase(phases, "p1")).toEqual(phases);
+    expect(removeGb300Phase(phases, "p2")).toEqual([phases[0]]);
+    expect(addGb300Phase(phases)).toHaveLength(3);
   });
 });
 

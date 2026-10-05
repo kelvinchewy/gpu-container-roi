@@ -178,8 +178,8 @@ export function runGb300Staggered(inputs: ModelInputs): SkuResult {
         taxableIncome = taxable;
         tax = 0;
       } else {
-        const maxOffset = depreciation > 0 ? 0 : 0.8 * Math.max(ebitda, 0);
-        const used = Math.min(remainingNol, maxOffset);
+        const maxOffset = 0.8 * Math.max(ebitda, 0);
+        const used = Math.min(remainingNol, maxOffset, taxable);
         remainingNol -= used;
         taxableIncome = taxable - used;
         tax = Math.max(0, taxableIncome) * combined;

@@ -6,9 +6,14 @@ import type { SkuResult } from "@/lib/roi/types";
 
 import { useT } from "./locale";
 
-export function KpiStrip({ result }: { result: SkuResult }) {
+export function KpiStrip({
+  result,
+  residualYear,
+}: {
+  result: SkuResult;
+  residualYear: number;
+}) {
   const { t, locale } = useT();
-  const residualYear = result.years.length;
   const items = [
     { label: t("capex"), value: usd(result.totalCapex) },
     { label: t("y1Ncf"), value: usd(result.y1Ncf) },

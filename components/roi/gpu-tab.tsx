@@ -44,7 +44,12 @@ export function GpuTab({
           />
         </CardContent>
       </Card>
-      <KpiStrip result={result} />
+      <KpiStrip
+        result={result}
+        residualYear={Math.round(
+          skuId === "gb300" ? inputs.gb300Facility.usefulLifeYrs : inputs.usefulLifeYrs,
+        )}
+      />
       <Card>
         <CardHeader>
           <CardTitle>{t("pnlTitle")}</CardTitle>
