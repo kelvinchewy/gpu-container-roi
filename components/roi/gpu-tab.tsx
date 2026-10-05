@@ -39,6 +39,7 @@ export function GpuTab({
           <SkuPrimaryInputs
             skuId={skuId}
             sku={sku}
+            facility={skuId === "gb300" ? inputs.gb300Facility : undefined}
             onChange={(patch) => onSkuChange(skuId, patch)}
           />
         </CardContent>

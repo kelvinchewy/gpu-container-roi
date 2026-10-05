@@ -41,6 +41,7 @@ export const DEFAULT_SKU_GB300: SkuInputs = {
   residualPct: 0.1,
   rackCount: 24,
   gpusPerServer: GB300_GPUS_PER_RACK,
+  phases: [{ id: "p1", goLive: "2026-03", rackCount: 24 }],
 };
 
 export const DEFAULT_GB300_FACILITY: Gb300Facility = {
@@ -128,12 +129,18 @@ export function gb300SiteConstruction(rackCount: number): number {
 /** Snap racks to a 6-rack block and set site construction to $12M per block. */
 export function withGb300RackCount(inputs: ModelInputs, rackCount: number): ModelInputs {
   const racks = snapGb300Racks(rackCount);
+  const phases = inputs.skuGb300.phases ?? [];
+  const nextPhases =
+    phases.length <= 1
+      ? [{ id: phases[0]?.id ?? "p1", goLive: phases[0]?.goLive ?? "2026-03", rackCount: racks }]
+      : phases;
   return {
     ...inputs,
     skuGb300: {
       ...inputs.skuGb300,
       rackCount: racks,
       gpusPerServer: GB300_GPUS_PER_RACK,
+      phases: nextPhases,
     },
     gb300Facility: {
       ...(inputs.gb300Facility ?? DEFAULT_GB300_FACILITY),

@@ -75,23 +75,52 @@ Compact bar above the tab strip:
 
 Discount and price decay update all SKUs. Site, tax, topology, power tariff, and capex/opex rates on the GB300 tab never write to 5090 / Pro 6000, and vice versa.
 
-IT load and residual for 5090 / Pro 6000 sit in the air-box accordion under **Per GPU**. GB300 IT is kW/rack and residual live in the GB300 accordion under **Per rack**. GPUs / rack sits on the GB300 primary card with rack price and racks (same sold-unit row).
+IT load and residual for 5090 / Pro 6000 sit in the air-box accordion under **Per GPU**. GB300 IT is kW/rack and residual live in the GB300 accordion under **Per rack**. GB300 primary card: shared rack price, then **phase cards** (go-live, racks, derived MW / GPUs / site / phase CapEx) with **+** to add a phase. GPUs / rack stays 72, locked.
 
 ### GPU workbench (5090, Pro 6000, GB300)
 
-Per-SKU inputs: 5090 / Pro 6000 = server price, then GPU rent + utilization on the next row. GB300 = rack price + racks + GPUs / rack, then server rent ($/server-hr) + utilization. Cost and rent are never on the same line. Field labels only.
+Per-SKU inputs: 5090 / Pro 6000 = server price, then GPU rent + utilization on the next row. GB300 = shared rack price, then one or more **phase** cards, then server rent ($/server-hr) + utilization. Cost and rent are never on the same line. Field labels only.
 
 Order, top to bottom:
 
 1. Per-SKU primary inputs
 2. KPI strip — CapEx, Y1 NCF, Payback (yrs), IRR, NPV, Breakeven month
-3. Combined P&L + cumulative — Y0–Yn. Title: `P&L and cumulative NCF ($)`. Caption: `{SKU} · {site} · tax · topology · PUE · OBBBA on/off · decay on/off`. GB300 caption: `GB300 · NVL72 · Blackwell Ultra · … · {n} racks`.
+3. Combined P&L + cumulative — Y0–Yn for 5090 / Pro 6000. GB300 with staggered CODs uses **calendar years**. Title: `P&L and cumulative NCF ($)`. Caption: `{SKU} · {site} · tax · topology · PUE · OBBBA on/off · decay on/off`. GB300 caption: `GB300 · NVL72 · Blackwell Ultra · … · {n} racks · {p} phases`.
 4. Sensitivity matrix — utilization × price decay, cell = breakeven month
 5. Yearly P&L + cash-flow table, **open by default**. Optional OpEx stacked bar inside. No inner tab strip.
 
 Do not put the other SKU on these tabs.
 
-**GB300 topology (does not use 35 × 8):** one sold unit = one NVL72 rack = **72 GPUs** (locked, not an input). Reset: 24 racks × $5.0M × 140 kW IT × **$720/server-hr** (`$10/GPU-hr × 72`). `totalServers = rackCount`. Racks step by **6** (6–60). Site construction follows racks: **$12M per 6 racks** (~1 MW including PUE 1.3). Reset 24 racks = `$48M`. Infra = `(gb300Facility.containerCost + siteConstruction) × hallCount` (Reset `$0` + `$48M`). Accordion can still override site $ after a rack change. Not Vera Rubin. Compare chrome stays the air-box accordion.
+**GB300 topology (does not use 35 × 8):** one sold unit = one NVL72 rack = **72 GPUs** (locked, not an input). Reset: **one phase**, 24 racks × $5.0M × 140 kW IT × **$720/server-hr** (`$10/GPU-hr × 72`), go-live `2026-03`. `totalServers = sum(phase.rackCount)`. Racks step by **6** (6–60 **total** across phases). Site construction follows racks: **$12M per 6 racks** (~1 MW including PUE 1.3). Reset 24 racks = `$48M`. Infra = `(gb300Facility.containerCost + siteConstruction) × hallCount` (Reset `$0` + `$48M`). Accordion site $ is the sum of phase sites (override on a single-phase deal still allowed). Not Vera Rubin. Compare chrome stays the air-box accordion.
+
+### GB300 phases (COD calendar)
+
+GB300 only. 5090 / Pro 6000 / Compare stay a single Y0 deploy. Phases are how this deal is built, not a second engine.
+
+**UI**
+
+- Shared rack price above the list (same $/rack for every phase unless a phase overrides).
+- Each phase card: **go-live** (`YYYY-MM`), **racks** (step 6), readouts **MW** (`racks × itLoadKw × pue / 1000`), **GPUs** (`racks × 72`), **site $** (formula, overridable on the card), **phase CapEx** (rack × price + site, × hallCount on site/container as today).
+- **+** adds a phase. Default new phase: 6 racks, go-live = previous + 9 months (March → December). Max **8** phases. Phase 1 cannot be removed. Total racks clamp 6–60.
+- Shared **server rent** and **utilization** sit under the list. Facility accordion (power, tax, PUE, OBBBA, residual, IT kW/rack, network, O&M) still applies to every phase.
+
+**Engine**
+
+Excel formulas stay the per-rack / per-year identities. Phases only change **when** capex and operations hit the timeline.
+
+- **Same COD** (one phase, or every phase the same `YYYY-MM`): existing yearly path. Y0 = `−totalCapex`. Full-year ops Y1…Yn. Goldens and Reset match today’s 24-rack model. Go-live is a label.
+- **Staggered COD** (at least two distinct months): calendar compose, project-level tax.
+  - Each phase: capex in its go-live month; ops while live (`goLive` … `goLive + usefulLifeYrs` years, stub months in first/last calendar year = months/12).
+  - Price erosion uses **that phase’s** operating year (`floor(monthsSinceGoLive / 12)`).
+  - Network and O&M are facility lines (hallCount), charged once from the first COD — not multiplied by phase count.
+  - Electricity, insurance, other, property tax follow that phase’s live racks / revenue / placed capex.
+  - OBBBA / SL tax is **one** return per calendar year: EBITDA = sum of live phases that year; bonus dep in the calendar year each phase is placed; NOL and 80% limit at project level (do not run two standalone tax engines and add).
+  - Residual cash for a phase in its last live month (servers only).
+  - Charts and the yearly table use **calendar years** (2026, 2027, …). No synthetic Y0 row; the first year includes capex and stub ops.
+  - IRR / NPV / payback use **monthly** cash (first COD month = t0, undiscounted like Excel Y0). Display IRR annualized `(1 + monthly)^12 − 1`. NPV monthly rate `(1 + discount)^(1/12) − 1`. Breakeven month = months from first capex until cumulative NCF ≥ 0.
+  - KPI **Y1 NCF** = operating NCF of the first calendar year (stub if COD is mid-year). **CapEx** = sum of phases. **Residual** = sum of phase residuals.
+
+**URL:** `c_ph=2026-03:24,2026-12:12` (`YYYY-MM:racks`). Omit when Reset (one phase, 24 racks, `2026-03`). `c_rc` without `c_ph` is still total racks on the single Reset phase. Do not invent Excel-sheet phasing; this compose is GB300-only.
 
 ### Tab 3 — Compare
 
@@ -114,7 +143,7 @@ Follows `obbbaEnabled` and the with-residual series. Breakeven month = `ceil(pay
 
 ## Field contract
 
-Almost every assumption is editable. Frequency is a UX grouping, not a hard lock. Defaults = Excel ScenA except GPU rent (`$0.63` / `$1.73`) and power `$0.06/kWh`. GB300 Reset is not Excel: rack `$5.0M` · **`$720/server-hr`** (`$10/GPU-hr × 72`) · 24 racks · 72 GPUs (locked NVL72) · 140 kW · container `$0` · site `$48M` (`$12M` × 4 blocks). Out-of-bounds values clamp. Per-SKU fields never copy across SKUs. Air-box shared fields update 5090 and Pro 6000 only. `gb300Facility` updates GB300 only. Discount rate and price decay update all SKUs.
+Almost every assumption is editable. Frequency is a UX grouping, not a hard lock. Defaults = Excel ScenA except GPU rent (`$0.63` / `$1.73`) and power `$0.06/kWh`. GB300 Reset is not Excel: rack `$5.0M` · **`$720/server-hr`** (`$10/GPU-hr × 72`) · one phase 24 racks · go-live `2026-03` · 72 GPUs (locked NVL72) · 140 kW · container `$0` · site `$48M` (`$12M` × 4 blocks). Out-of-bounds values clamp. Per-SKU fields never copy across SKUs. Air-box shared fields update 5090 and Pro 6000 only. `gb300Facility` updates GB300 only. Discount rate and price decay update all SKUs.
 
 URL search params serialize A + B + C + `g_*` facility + view toggles + `lang=zh`. Missing params = defaults. Legacy GB300 `c_rent` ≤ 50 with no `c_ru=s` is $/GPU-hr and is multiplied by GPUs/rack. New writes set `c_ru=s` so `$50/server-hr` is not migrated.
 
@@ -140,8 +169,9 @@ Show **effective** `$/kWh` next to power: `elecPerKwh × pue`. Input is tariff `
 | `serverPrice` | Server / rack price | `$88,200` | `$191,800` | `$5,000,000` | > 0 |
 | `gpuRentPerHr` | GPU rent ($/GPU-hr) · GB300 Server rent ($/server-hr) | `$0.63` | `$1.73` | `$720` | 0.01–50 · GB300 0.01–5000 |
 | `utilization` | Utilization | `100%` | `100%` | `100%` | 40–100% |
-| `rackCount` | Racks | — | — | `24` | 6–60, step 6 |
+| `rackCount` | Racks (sum of phases) | — | — | `24` | 6–60, step 6 |
 | `gpusPerServer` | GPUs / rack | — (uses shared 8) | — | `72` NVL72 locked | not editable on GB300 |
+| `phases[]` | GB300 COD cards | — | — | one phase `2026-03` · 24 racks | 1–8 phases; see **GB300 phases** |
 
 ### B — Rarely touched (accordion in chrome)
 
@@ -335,7 +365,7 @@ Three Recharts, reused. Do not invent a fourth type.
 
 Rules:
 
-- X axis for time charts is **calendar years Y0/Y1…Yn** (Y0 capex is on the cumulative line only, not a revenue bar).
+- X axis for time charts is **calendar years Y0/Y1…Yn** (Y0 capex is on the cumulative line only, not a revenue bar). GB300 staggered CODs: **2026, 2027, …** with capex inside the go-live year; no synthetic Y0.
 - When `priceErosionOn`, revenue bars step down; OpEx lines that are % of revenue step down with them.
 - Caption every chart with SKU, site, OBBBA on/off, erosion on/off.
 - One collapsed yearly table. **No inner tab strip.**
@@ -379,7 +409,7 @@ Auth, saved accounts, live GPU-spot APIs, debt / leverage, PDF export, 50-state 
 
 ## Later
 
-- Deploy-to-energize calendar / utilization ramp
+- 5090 / Pro 6000 deploy-to-energize calendar / utilization ramp (GB300 phases cover NVL72 COD)
 - Debt module
 - Live rental comps
 - Vercel deployment protection if the URL leaks

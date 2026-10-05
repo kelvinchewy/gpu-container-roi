@@ -17,6 +17,7 @@ function matrixKey(inputs: ModelInputs, skuId: SkuId): string {
       residualPct: sku.residualPct,
       rackCount: sku.rackCount ?? null,
       gpusPerServer: sku.gpusPerServer ?? null,
+      phases: sku.phases ?? null,
       f: {
         elecPerKwh: f.elecPerKwh,
         federalTax: f.federalTax,

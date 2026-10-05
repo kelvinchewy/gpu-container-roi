@@ -10,7 +10,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { usdK } from "@/lib/roi/format";
+import { usdK, yearTick } from "@/lib/roi/format";
 import type { SkuResult } from "@/lib/roi/types";
 
 import { useT } from "./locale";
@@ -26,7 +26,7 @@ export function OpexChart({ result }: { result: SkuResult }) {
     otherOpex: { label: t("chartOther"), color: "var(--muted-foreground)" },
   };
   const data = result.years.map((y) => ({
-    year: `Y${y.year}`,
+    year: yearTick(y.year),
     electricity: y.electricity,
     network: y.network,
     om: y.om,

@@ -6,11 +6,10 @@ import {
   DEFAULT_SKU_GB300,
   DEFAULT_SKU_PRO6000,
   GB300_GPUS_PER_RACK,
-  gb300SiteConstruction,
-  snapGb300Racks,
 } from "./defaults";
 import { clamp } from "./finance";
 import { cloneBom, syncBomToPrice, bomSum } from "./sources";
+import { clampGb300Phases, DEFAULT_GB300_GO_LIVE, syncGb300Phases, totalGb300Racks } from "./phases";
 import type { Gb300Facility, ModelInputs, SkuId, SkuInputs, TabId } from "./types";
 import { TABS } from "./types";
 import { parseLocale, type Locale } from "./i18n";
@@ -54,7 +53,23 @@ function clampSku(
 
 function clampGb300Sku(sku: SkuInputs): SkuInputs {
   const next = clampSku(sku, DEFAULT_SKU_GB300.itLoadKw, BOUNDS.gb300RentPerHr);
-  next.rackCount = snapGb300Racks(next.rackCount ?? DEFAULT_SKU_GB300.rackCount ?? 24);
+  if ((sku.phases?.length ?? 0) > 1) {
+    next.phases = clampGb300Phases(sku);
+  } else {
+    const base = sku.phases?.[0];
+    next.phases = clampGb300Phases({
+      ...sku,
+      phases: [
+        {
+          id: base?.id ?? "p1",
+          goLive: base?.goLive ?? DEFAULT_GB300_GO_LIVE,
+          rackCount: sku.rackCount ?? base?.rackCount ?? 24,
+          ...(base?.siteConstruction != null ? { siteConstruction: base.siteConstruction } : {}),
+        },
+      ],
+    });
+  }
+  next.rackCount = totalGb300Racks(next.phases);
   next.gpusPerServer = GB300_GPUS_PER_RACK;
   return next;
 }
@@ -93,7 +108,7 @@ function clampFacility(f: Gb300Facility): Gb300Facility {
 }
 
 export function clampInputs(inputs: ModelInputs): ModelInputs {
-  return {
+  const next: ModelInputs = {
     ...inputs,
     siteName: inputs.siteName.trim().slice(0, 80),
     elecPerKwh: clamp(inputs.elecPerKwh, BOUNDS.elecPerKwh.min, BOUNDS.elecPerKwh.max),
@@ -151,6 +166,7 @@ export function clampInputs(inputs: ModelInputs): ModelInputs {
     skuGb300: clampGb300Sku(inputs.skuGb300 ?? DEFAULT_SKU_GB300),
     gb300Facility: clampFacility(inputs.gb300Facility ?? DEFAULT_GB300_FACILITY),
   };
+  return syncGb300Phases(next);
 }
 
 const NUM = {
@@ -269,12 +285,30 @@ export function inputsFromSearchParams(params: URLSearchParams): ModelInputs {
     if (c != null) next.skuGb300[field] = c;
   }
 
+  const cPh = params.get("c_ph");
+  if (cPh) {
+    const phases = cPh.split(",").flatMap((part, i) => {
+      const [goLive, racksRaw, siteRaw] = part.split(":");
+      const racks = Number(racksRaw);
+      if (!goLive || !Number.isFinite(racks)) return [];
+      const phase = { id: `p${i + 1}`, goLive, rackCount: racks };
+      const site = Number(siteRaw);
+      return Number.isFinite(site) && siteRaw ? [{ ...phase, siteConstruction: site }] : [phase];
+    });
+    if (phases.length) next.skuGb300.phases = phases;
+  }
   const cRc = parseNum(params.get("c_rc"));
-  if (cRc != null) {
+  if (cRc != null && !cPh) {
     next.skuGb300.rackCount = cRc;
-    if (params.get("g_sc") == null) {
-      next.gb300Facility.siteConstruction = gb300SiteConstruction(cRc);
-    }
+    next.skuGb300.phases = [{ id: "p1", goLive: DEFAULT_GB300_GO_LIVE, rackCount: cRc }];
+  }
+  if (!cPh && (next.skuGb300.phases?.length ?? 1) === 1 && params.get("g_sc") != null) {
+    const only = next.skuGb300.phases?.[0] ?? {
+      id: "p1",
+      goLive: DEFAULT_GB300_GO_LIVE,
+      rackCount: next.skuGb300.rackCount ?? 24,
+    };
+    next.skuGb300.phases = [{ ...only, siteConstruction: next.gb300Facility.siteConstruction }];
   }
   next.skuGb300.gpusPerServer = GB300_GPUS_PER_RACK;
 
@@ -354,6 +388,13 @@ export function searchParamsFromState(
   const rc = inputs.skuGb300.rackCount;
   const rcDef = d.skuGb300.rackCount ?? 24;
   if (rc != null && !close(rc, rcDef)) params.set("c_rc", String(rc));
+  const phases = inputs.skuGb300.phases ?? [];
+  const defPhases = d.skuGb300.phases ?? [];
+  const pack = (list: typeof phases) =>
+    list.map((p) =>
+      p.siteConstruction != null ? `${p.goLive}:${p.rackCount}:${p.siteConstruction}` : `${p.goLive}:${p.rackCount}`,
+    ).join(",");
+  if (pack(phases) !== pack(defPhases)) params.set("c_ph", pack(phases));
 
   return params;
 }

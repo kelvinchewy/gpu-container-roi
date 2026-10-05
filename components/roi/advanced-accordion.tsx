@@ -416,6 +416,7 @@ export function Gb300Accordion({
                   <MoneyInput
                     value={f.siteConstruction}
                     min={0}
+                    disabled={(inputs.skuGb300.phases?.length ?? 1) > 1}
                     onChange={(siteConstruction) => onFacilityChange({ siteConstruction })}
                   />
                 </Field>

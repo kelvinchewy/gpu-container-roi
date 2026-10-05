@@ -30,6 +30,17 @@ export type SkuInputs = {
   rackCount?: number;
   /** GB300 NVL72: always 72. Not editable. */
   gpusPerServer?: number;
+  /** GB300 COD cards. Unset = one Reset phase (2026-03, rackCount). */
+  phases?: Gb300Phase[];
+};
+
+export type Gb300Phase = {
+  id: string;
+  /** `YYYY-MM` commercial operation. */
+  goLive: string;
+  rackCount: number;
+  /** Override formula `$12M / 6 racks`. Unset = formula. */
+  siteConstruction?: number;
 };
 
 export type SharedInputs = {
@@ -122,6 +133,8 @@ export type SkuResult = {
   slDep: number;
   years: YearRow[];
   cashFlows: number[];
+  /** `calendar` = GB300 staggered COD; charts use 2026… not Y0/Y1. */
+  axis?: "model" | "calendar";
   y1Ncf: number;
   paybackYears: number | null;
   breakevenMonth: number | null;

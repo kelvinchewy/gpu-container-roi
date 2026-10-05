@@ -14,7 +14,8 @@ import { chartCaption, usdK, usdParenK, years } from "./format";
 import { parseLocale } from "./i18n";
 import { breakevenMatrix, clearMatrixCache } from "./matrix";
 import { clampInputs, inputsFromSearchParams, parseTab, searchParamsFromState } from "./url";
-import type { ModelInputs } from "./types";
+import type { Gb300Phase, ModelInputs } from "./types";
+import { addMonths, phaseCapex, yearMonthIndex } from "./phases";
 
 function run(overrides: Partial<ModelInputs> = {}) {
   return runModel({
@@ -323,6 +324,186 @@ describe("GB300 NVL72", () => {
     const gpIgnored = inputsFromSearchParams(new URLSearchParams("c_gp=36"));
     expect(gpIgnored.skuGb300.gpusPerServer).toBe(72);
     expect(searchParamsFromState("gb300", locked).get("c_gp")).toBeNull();
+  });
+
+  it("staggers GB300 cashflow when CODs differ and keeps the yearly path when they match", () => {
+    const splitSame = runModel({
+      ...DEFAULT_INPUTS,
+      skuGb300: {
+        ...DEFAULT_INPUTS.skuGb300,
+        rackCount: 24,
+        phases: [
+          { id: "p1", goLive: "2026-03", rackCount: 12 },
+          { id: "p2", goLive: "2026-03", rackCount: 12 },
+        ],
+      },
+    });
+    expect(splitSame.skuGb300.axis ?? "model").toBe("model");
+    expect(splitSame.skuGb300.totalCapex).toBe(168_000_000);
+    expect(splitSame.skuGb300.years[0]?.revenue).toBe(24 * 720 * 8760);
+
+    const staggered = runModel({
+      ...DEFAULT_INPUTS,
+      skuGb300: {
+        ...DEFAULT_INPUTS.skuGb300,
+        rackCount: 24,
+        phases: [
+          { id: "p1", goLive: "2026-03", rackCount: 12 },
+          { id: "p2", goLive: "2026-12", rackCount: 12 },
+        ],
+      },
+    });
+    expect(staggered.skuGb300.axis).toBe("calendar");
+    expect(staggered.skuGb300.totalServers).toBe(24);
+    expect(staggered.skuGb300.totalCapex).toBe(168_000_000);
+    expect(staggered.skuGb300.years[0]?.year).toBe(2026);
+    expect(staggered.skuGb300.years[0]?.revenue).toBeLessThan(24 * 720 * 8760);
+    expect(staggered.skuGb300.years[0]?.cashFlow).toBeLessThan(0);
+    expect(staggered.skuGb300.breakevenMonth).not.toBeNull();
+    expect(staggered.skuGb300.irr).not.toBeNull();
+
+    const fromUrl = inputsFromSearchParams(new URLSearchParams("c_ph=2026-03:12,2026-12:12"));
+    expect(fromUrl.skuGb300.phases).toHaveLength(2);
+    expect(fromUrl.skuGb300.rackCount).toBe(24);
+    expect(searchParamsFromState("gb300", fromUrl).get("c_ph")).toBe("2026-03:12,2026-12:12");
+  });
+
+  it("matches month-count identities for 2–3 phases at 3-month and 12-month lags", () => {
+    const life = DEFAULT_INPUTS.gb300Facility.usefulLifeYrs;
+    const rent = DEFAULT_INPUTS.skuGb300.gpuRentPerHr;
+    const hours = DEFAULT_INPUTS.gb300Facility.hoursPerYear;
+    const util = DEFAULT_INPUTS.skuGb300.utilization;
+    const it = DEFAULT_INPUTS.skuGb300.itLoadKw;
+    const pue = DEFAULT_INPUTS.gb300Facility.pue;
+    const kwh = DEFAULT_INPUTS.gb300Facility.elecPerKwh;
+    const price = DEFAULT_INPUTS.skuGb300.serverPrice;
+    const residualPct = DEFAULT_INPUTS.skuGb300.residualPct;
+    const hall = DEFAULT_INPUTS.gb300Facility.hallCount;
+    const container = DEFAULT_INPUTS.gb300Facility.containerCost;
+
+    function annualRevenue(racks: number) {
+      return racks * rent * hours * util;
+    }
+    function annualElec(racks: number) {
+      return racks * it * pue * kwh * hours;
+    }
+    function monthsLive(goLive: string, year: number) {
+      const start = yearMonthIndex(goLive);
+      const end = start + life * 12;
+      const a = Math.max(start, year * 12);
+      const b = Math.min(end, year * 12 + 12);
+      return Math.max(0, b - a);
+    }
+
+    function runPhases(phases: Gb300Phase[]) {
+      const racks = phases.reduce((sum, p) => sum + p.rackCount, 0);
+      return runModel(
+        clampInputs({
+          ...DEFAULT_INPUTS,
+          skuGb300: { ...DEFAULT_INPUTS.skuGb300, rackCount: racks, phases },
+        }),
+      ).skuGb300;
+    }
+
+    const start = "2026-03";
+    const cases: { name: string; lagMo: number; racks: number[] }[] = [
+      { name: "2 phases · 3 mo", lagMo: 3, racks: [12, 12] },
+      { name: "2 phases · 12 mo", lagMo: 12, racks: [12, 12] },
+      { name: "3 phases · 3 mo", lagMo: 3, racks: [6, 6, 6] },
+      { name: "3 phases · 12 mo", lagMo: 12, racks: [6, 6, 6] },
+    ];
+
+    for (const c of cases) {
+      const phases: Gb300Phase[] = c.racks.map((rackCount, i) => ({
+        id: `p${i + 1}`,
+        goLive: addMonths(start, c.lagMo * i),
+        rackCount,
+      }));
+      const got = runPhases(phases);
+      const staggered = new Set(phases.map((p) => p.goLive)).size > 1;
+      expect(got.axis === "calendar", c.name).toBe(staggered);
+      expect(got.totalServers, c.name).toBe(c.racks.reduce((a, b) => a + b, 0));
+
+      const sorted = [...phases].sort((a, b) => yearMonthIndex(a.goLive) - yearMonthIndex(b.goLive));
+      const expectedCapex = sorted.reduce(
+        (sum, p, i) => sum + phaseCapex(p, price, hall, container, i === 0),
+        0,
+      );
+      expect(got.totalCapex, c.name).toBe(expectedCapex);
+      expect(got.residualCash, c.name).toBe(got.serverCapex * residualPct);
+      expect(got.irr, c.name).not.toBeNull();
+      expect(Number.isFinite(got.npv), c.name).toBe(true);
+      expect(got.breakevenMonth, c.name).not.toBeNull();
+      expect(got.paybackYears, c.name).toBeGreaterThan(0);
+
+      const years = new Set<number>();
+      for (const p of phases) {
+        const startIdx = yearMonthIndex(p.goLive);
+        years.add(Math.floor(startIdx / 12));
+        years.add(Math.floor((startIdx + life * 12 - 1) / 12));
+      }
+      const minY = Math.min(...years);
+      const maxY = Math.max(...years);
+      expect(got.years[0]?.year, c.name).toBe(minY);
+      expect(got.years.at(-1)?.year, c.name).toBe(maxY);
+
+      for (const row of got.years) {
+        const expRev = phases.reduce(
+          (sum, p) => sum + annualRevenue(p.rackCount) * (monthsLive(p.goLive, row.year) / 12),
+          0,
+        );
+        const expElec = phases.reduce(
+          (sum, p) => sum + annualElec(p.rackCount) * (monthsLive(p.goLive, row.year) / 12),
+          0,
+        );
+        expect(row.revenue, `${c.name} ${row.year} rev`).toBeCloseTo(expRev, 4);
+        expect(row.electricity, `${c.name} ${row.year} elec`).toBeCloseTo(expElec, 4);
+
+        const expCapex = sorted.reduce((sum, p, i) => {
+          return Math.floor(yearMonthIndex(p.goLive) / 12) === row.year
+            ? sum + phaseCapex(p, price, hall, container, i === 0)
+            : sum;
+        }, 0);
+        const impliedCapex = row.ncf + row.residualCash - row.cashFlow;
+        expect(impliedCapex, `${c.name} ${row.year} capex`).toBeCloseTo(expCapex, 4);
+
+        const expRes = phases.reduce((sum, p) => {
+          const last = yearMonthIndex(p.goLive) + life * 12 - 1;
+          return Math.floor(last / 12) === row.year ? sum + p.rackCount * price * residualPct : sum;
+        }, 0);
+        expect(row.residualCash, `${c.name} ${row.year} residual`).toBeCloseTo(expRes, 4);
+      }
+
+      if (c.lagMo === 12) {
+        const bonusYears = phases.map((p) => Math.floor(yearMonthIndex(p.goLive) / 12));
+        for (const year of bonusYears) {
+          const row = got.years.find((y) => y.year === year);
+          const expectedBonus = phases
+            .filter((p) => Math.floor(yearMonthIndex(p.goLive) / 12) === year)
+            .reduce((sum, p) => sum + p.rackCount * price * (1 - residualPct), 0);
+          expect(row?.depreciation, `${c.name} bonus ${year}`).toBeCloseTo(expectedBonus, 4);
+        }
+      }
+
+      if (c.lagMo === 3) {
+        const y0 = got.years[0];
+        const bonus = phases.reduce((sum, p) => sum + p.rackCount * price * (1 - residualPct), 0);
+        expect(y0?.depreciation, `${c.name} all bonus Y1`).toBeCloseTo(bonus, 4);
+      }
+    }
+
+    const sameCod = [
+      { id: "p1", goLive: start, rackCount: 6 },
+      { id: "p2", goLive: start, rackCount: 6 },
+      { id: "p3", goLive: start, rackCount: 6 },
+    ];
+    const oneCard = runPhases([{ id: "p1", goLive: start, rackCount: 18 }]);
+    const threeCards = runPhases(sameCod);
+    expect(threeCards.axis ?? "model").toBe("model");
+    expect(threeCards.totalCapex).toBe(oneCard.totalCapex);
+    expect(threeCards.years[0]?.revenue).toBe(oneCard.years[0]?.revenue);
+    expect(threeCards.y1Ncf).toBeCloseTo(oneCard.y1Ncf, 4);
+    expect(threeCards.irr).toBeCloseTo(oneCard.irr ?? 0, 8);
   });
 });
 

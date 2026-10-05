@@ -15,7 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { usdParenK } from "@/lib/roi/format";
+import { usdParenK, yearTick } from "@/lib/roi/format";
 import type { SkuResult } from "@/lib/roi/types";
 
 import { OpexChart } from "./opex-chart";
@@ -82,23 +82,25 @@ export function YearlyDisclosure({ result }: { result: SkuResult }) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <TableRow>
-                    <TableCell className="px-1.5 font-mono text-xs">Y0</TableCell>
-                    <Money value={null} />
-                    <Money value={null} />
-                    <Money value={null} />
-                    <Money value={null} />
-                    <Money value={null} />
-                    <Money value={null} />
-                    <Money value={null} />
-                    <Money value={null} />
-                    <Money value={null} />
-                    <Money value={result.cashFlows[0] ?? 0} />
-                    <Money value={result.cashFlows[0] ?? 0} />
-                  </TableRow>
+                  {result.axis === "calendar" ? null : (
+                    <TableRow>
+                      <TableCell className="px-1.5 font-mono text-xs">Y0</TableCell>
+                      <Money value={null} />
+                      <Money value={null} />
+                      <Money value={null} />
+                      <Money value={null} />
+                      <Money value={null} />
+                      <Money value={null} />
+                      <Money value={null} />
+                      <Money value={null} />
+                      <Money value={null} />
+                      <Money value={result.cashFlows[0] ?? 0} />
+                      <Money value={result.cashFlows[0] ?? 0} />
+                    </TableRow>
+                  )}
                   {result.years.map((y) => (
                     <TableRow key={y.year}>
-                      <TableCell className="px-1.5 font-mono text-xs">Y{y.year}</TableCell>
+                      <TableCell className="px-1.5 font-mono text-xs">{yearTick(y.year)}</TableCell>
                       <Money value={y.revenue} />
                       <Money value={y.totalOpex} />
                       <Money value={y.ebitda} />

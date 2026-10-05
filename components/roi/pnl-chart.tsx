@@ -10,7 +10,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { usdK } from "@/lib/roi/format";
+import { usdK, yearTick } from "@/lib/roi/format";
 import type { SkuResult } from "@/lib/roi/types";
 
 import { useT } from "./locale";
@@ -25,16 +25,21 @@ export function PnlChart({ result }: { result: SkuResult }) {
   const cumConfig: ChartConfig = {
     cumulative: { label: t("chartCumulative"), color: "var(--gain)" },
   };
+  const calendar = result.axis === "calendar";
   const data = [
-    {
-      year: "Y0",
-      revenue: 0,
-      opex: 0,
-      ncf: 0,
-      cumulative: result.cashFlows[0] ?? 0,
-    },
+    ...(calendar
+      ? []
+      : [
+          {
+            year: "Y0",
+            revenue: 0,
+            opex: 0,
+            ncf: 0,
+            cumulative: result.cashFlows[0] ?? 0,
+          },
+        ]),
     ...result.years.map((y) => ({
-      year: `Y${y.year}`,
+      year: yearTick(y.year),
       revenue: y.revenue,
       opex: y.totalOpex,
       ncf: y.ncf,

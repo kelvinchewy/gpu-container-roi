@@ -53,6 +53,10 @@ export function kwh(value: number): string {
   return `$${value.toFixed(4)}/kWh`;
 }
 
+export function yearTick(year: number): string {
+  return year >= 2000 ? String(year) : `Y${year}`;
+}
+
 export function extrasSummary(
   inputs: ModelInputs,
   skuId?: SkuId,
@@ -63,14 +67,18 @@ export function extrasSummary(
     const site = f.siteName.trim() || "Atlanta, GA";
     const tax = combinedTax(f.federalTax, f.stateTax);
     const racks = inputs.skuGb300.rackCount ?? 24;
+    const phases = inputs.skuGb300.phases?.length ?? 1;
     return [
       site,
       t(locale, "taxChip", { value: pct(tax, 1) }),
       t(locale, "racksCount", { n: racks }),
+      phases > 1 ? t(locale, "phasesCount", { n: phases }) : "",
       t(locale, f.hallCount === 1 ? "hallCount" : "hallsCount", { n: f.hallCount }),
       `PUE ${f.pue.toFixed(2)}`,
       t(locale, f.obbbaEnabled ? "obbbaOn" : "obbbaOff"),
-    ].join(" · ");
+    ]
+      .filter(Boolean)
+      .join(" · ");
   }
   const site = inputs.siteName.trim() || "Atlanta, GA";
   const tax = combinedTax(inputs.federalTax, inputs.stateTax);

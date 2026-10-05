@@ -9,6 +9,7 @@ import { DEFAULT_INPUTS, withGb300RackCount } from "@/lib/roi/defaults";
 import { htmlLang, parseLocale, type Locale } from "@/lib/roi/i18n";
 import { cloneBom } from "@/lib/roi/sources";
 import { runModel } from "@/lib/roi/engine";
+import { clampGb300Phases, syncGb300Phases } from "@/lib/roi/phases";
 import { clampInputs, inputsFromSearchParams, parseTab, searchParamsFromState } from "@/lib/roi/url";
 import type { Gb300Facility, ModelInputs, SkuId, SkuInputs, TabId } from "@/lib/roi/types";
 import { SKU_STATE_KEY } from "@/lib/roi/types";
@@ -79,6 +80,9 @@ export function RoiApp() {
     setInputs((prev) => {
       const key = SKU_STATE_KEY[skuId];
       const merged = { ...prev, [key]: { ...prev[key], ...patch } };
+      if (skuId === "gb300" && patch.phases != null) {
+        return clampInputs(syncGb300Phases(merged));
+      }
       if (skuId === "gb300" && patch.rackCount != null) {
         return clampInputs(withGb300RackCount(merged, patch.rackCount));
       }
@@ -87,12 +91,20 @@ export function RoiApp() {
   }
 
   function patchFacility(patch: Partial<Gb300Facility>) {
-    setInputs((prev) =>
-      clampInputs({
-        ...prev,
-        gb300Facility: { ...(prev.gb300Facility ?? DEFAULT_INPUTS.gb300Facility), ...patch },
-      }),
-    );
+    setInputs((prev) => {
+      const facility = { ...(prev.gb300Facility ?? DEFAULT_INPUTS.gb300Facility), ...patch };
+      let skuGb300 = prev.skuGb300;
+      if (patch.siteConstruction != null) {
+        const phases = clampGb300Phases(prev.skuGb300);
+        if (phases.length === 1) {
+          skuGb300 = {
+            ...prev.skuGb300,
+            phases: [{ ...phases[0]!, siteConstruction: patch.siteConstruction }],
+          };
+        }
+      }
+      return clampInputs({ ...prev, skuGb300, gb300Facility: facility });
+    });
   }
 
   function reset() {

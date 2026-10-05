@@ -3,12 +3,25 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { BOUNDS, GB300_GPUS_PER_RACK } from "@/lib/roi/defaults";
+import { BOUNDS, DEFAULT_GB300_FACILITY, GB300_GPUS_PER_RACK } from "@/lib/roi/defaults";
 import { usd } from "@/lib/roi/format";
+import {
+  addGb300Phase,
+  clampGb300Phases,
+  GB300_GO_LIVE_MAX,
+  GB300_GO_LIVE_MIN,
+  GB300_PHASE_MAX,
+  gb300Mw,
+  phaseCapex,
+  phaseSite,
+  removeGb300Phase,
+  patchGb300Phase,
+  totalGb300Racks,
+} from "@/lib/roi/phases";
 import { bomSum, syncBomToPrice } from "@/lib/roi/sources";
-import type { SkuId, SkuInputs } from "@/lib/roi/types";
+import type { Gb300Facility, SkuId, SkuInputs } from "@/lib/roi/types";
 
-import { Field, FieldRow, MoneyInput, NumberInput, PercentInput, useFieldId } from "./fields";
+import { Field, FieldRow, MoneyInput, MonthInput, NumberInput, PercentInput, useFieldId } from "./fields";
 import { useT } from "./locale";
 import { RentSourceDialog, ServerBomDialog } from "./source-dialogs";
 
@@ -35,10 +48,12 @@ function SectionLabel({ children }: { children: string }) {
 export function SkuPrimaryInputs({
   skuId,
   sku,
+  facility,
   onChange,
 }: {
   skuId: SkuId;
   sku: SkuInputs;
+  facility?: Gb300Facility;
   onChange: (patch: Partial<SkuInputs>) => void;
 }) {
   const [bomOpen, setBomOpen] = useState(false);
@@ -46,13 +61,15 @@ export function SkuPrimaryInputs({
   const { t } = useT();
   const isRack = skuId === "gb300";
   const gpus = GB300_GPUS_PER_RACK;
+  const f = facility ?? DEFAULT_GB300_FACILITY;
+  const phases = clampGb300Phases(sku);
 
   return (
     <div className="grid gap-6">
       <div className="grid gap-3">
         <SectionLabel>{isRack ? t("soldUnit") : t("server")}</SectionLabel>
         {isRack ? (
-          <FieldRow className="sm:grid-cols-3">
+          <div className="grid gap-4">
             <Field emphasis label={t("rackPrice")}>
               <MoneyInput
                 value={sku.serverPrice}
@@ -65,19 +82,91 @@ export function SkuPrimaryInputs({
                 }
               />
             </Field>
-            <Field emphasis label={t("racks")}>
-              <NumberInput
-                value={sku.rackCount ?? 24}
-                min={BOUNDS.rackCount.min}
-                max={BOUNDS.rackCount.max}
-                step={6}
-                onChange={(rackCount) => onChange({ rackCount })}
-              />
-            </Field>
-            <Field emphasis label={t("gpusPerRack")} caption={t("nvl72Fixed")}>
-              <NumberInput value={gpus} disabled />
-            </Field>
-          </FieldRow>
+            {phases.map((phase, i) => {
+              const first = i === 0;
+              const mw = gb300Mw(phase.rackCount, sku.itLoadKw, f.pue);
+              const capex = phaseCapex(phase, sku.serverPrice, f.hallCount, f.containerCost, first);
+              return (
+                <div key={phase.id} className="grid gap-3 rounded-xl bg-card p-3 ring-1 ring-foreground/10">
+                  <div className="flex min-h-6 items-center justify-between gap-2">
+                    <div className="text-xs font-medium">{t("phase", { n: i + 1 })}</div>
+                    {phases.length > 1 ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="xs"
+                        onClick={() => onChange({ phases: removeGb300Phase(phases, phase.id) })}
+                      >
+                        {t("removePhase")}
+                      </Button>
+                    ) : null}
+                  </div>
+                  <FieldRow className="sm:grid-cols-3">
+                    <Field emphasis label={t("goLive")}>
+                      <MonthInput
+                        value={phase.goLive}
+                        min={GB300_GO_LIVE_MIN}
+                        max={GB300_GO_LIVE_MAX}
+                        onChange={(goLive) =>
+                          onChange({ phases: patchGb300Phase(phases, phase.id, { goLive }) })
+                        }
+                      />
+                    </Field>
+                    <Field emphasis label={t("racks")}>
+                      <NumberInput
+                        value={phase.rackCount}
+                        min={BOUNDS.rackCount.min}
+                        max={BOUNDS.rackCount.max}
+                        step={6}
+                        onChange={(rackCount) =>
+                          onChange({
+                            phases: patchGb300Phase(phases, phase.id, {
+                              rackCount,
+                              siteConstruction: undefined,
+                            }),
+                          })
+                        }
+                      />
+                    </Field>
+                    <Field emphasis label={t("gpusPerRack")} caption={t("nvl72Fixed")}>
+                      <NumberInput value={gpus} disabled />
+                    </Field>
+                  </FieldRow>
+                  <FieldRow className="sm:grid-cols-3">
+                    <Field label={t("phaseMw")} caption={`PUE ${f.pue.toFixed(2)}`}>
+                      <NumberInput value={Number(mw.toFixed(2))} disabled />
+                    </Field>
+                    <Field label={t("siteConstruction")} caption={t("sitePerMwBlock")}>
+                      <MoneyInput
+                        value={phaseSite(phase)}
+                        min={0}
+                        onChange={(siteConstruction) =>
+                          onChange({
+                            phases: patchGb300Phase(phases, phase.id, { siteConstruction }),
+                          })
+                        }
+                      />
+                    </Field>
+                    <Field label={t("phaseCapex")}>
+                      <MoneyInput value={capex} disabled />
+                    </Field>
+                  </FieldRow>
+                </div>
+              );
+            })}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={
+                phases.length >= GB300_PHASE_MAX ||
+                totalGb300Racks(phases) > BOUNDS.rackCount.max - 6
+              }
+              onClick={() => onChange({ phases: addGb300Phase(phases) })}
+            >
+              {t("addPhase")}
+            </Button>
+          </div>
         ) : (
           <Field
             emphasis

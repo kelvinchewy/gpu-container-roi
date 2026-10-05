@@ -1,3 +1,4 @@
+import { runGb300Staggered, shouldRunGb300Staggered } from "./gb300-engine";
 import { DEFAULT_GB300_FACILITY, DEFAULT_INPUTS, SKU_LABEL } from "./defaults";
 import { combinedTax, irr, npv, paybackYears } from "./finance";
 import type { Gb300Facility, ModelInputs, ModelResult, SkuId, SkuResult, YearRow } from "./types";
@@ -46,6 +47,9 @@ function facility(inputs: ModelInputs, skuId: SkuId) {
 }
 
 function runSku(inputs: ModelInputs, skuId: SkuId): SkuResult {
+  if (skuId === "gb300" && shouldRunGb300Staggered(inputs)) {
+    return runGb300Staggered(inputs);
+  }
   const sku = skuState(inputs, skuId);
   const f = facility(inputs, skuId);
   const n = Math.round(f.usefulLifeYrs);

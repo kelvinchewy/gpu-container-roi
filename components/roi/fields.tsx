@@ -165,14 +165,43 @@ export function NumberInput({
   );
 }
 
+export function MonthInput({
+  value,
+  onChange,
+  min,
+  max,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  min?: string;
+  max?: string;
+}) {
+  const id = useFieldId();
+  return (
+    <Input
+      id={id}
+      type="month"
+      className="h-8 font-mono tabular-nums"
+      value={value}
+      min={min}
+      max={max}
+      onChange={(e) => {
+        if (e.target.value) onChange(e.target.value);
+      }}
+    />
+  );
+}
+
 export function MoneyInput({
   value,
   onChange,
   min,
+  disabled = false,
 }: {
   value: number;
-  onChange: (value: number) => void;
+  onChange?: (value: number) => void;
   min?: number;
+  disabled?: boolean;
 }) {
   const id = useFieldId();
   const [draft, setDraft] = useState<string | null>(null);
@@ -190,18 +219,20 @@ export function MoneyInput({
       inputMode="decimal"
       className="h-8 font-mono tabular-nums"
       value={display}
+      disabled={disabled}
+      readOnly={disabled}
       onChange={(e) => {
         const raw = e.target.value;
         setDraft(raw);
         const n = parse(raw);
         if (n == null) return;
         if (min != null && n < min) return;
-        onChange(n);
+        onChange?.(n);
       }}
       onBlur={() => {
         if (draft != null) {
           const n = parse(draft);
-          if (n != null) onChange(clamp(n, min ?? 0, Number.POSITIVE_INFINITY));
+          if (n != null) onChange?.(clamp(n, min ?? 0, Number.POSITIVE_INFINITY));
         }
         setDraft(null);
       }}
